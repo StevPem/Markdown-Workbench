@@ -1,0 +1,2078 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Markdown Workbench</title>
+<link id="app-fonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style id="app-style">
+/* Layout: a writing desk — toolbar on top, outline | source sheet | rendered page, status line below. */
+:root{
+  --bg:#e9eeee; --panel:#f6f8f8; --sheet:#ffffff; --line:#d6dedf; --text:#162224; --muted:#5b6a6c;
+  --accent:#0c6872; --accent-weak:#d9eced; --hover:#e3eaea; --sel-a:rgba(12,104,114,.22); --cur-line:rgba(12,104,114,.055);
+  --danger:#b3372d; --ok:#2a7a48; --warn:#a46200;
+  --s-mk:#8d9a9c; --s-h:#0c5c66; --s-code:#8c4a12; --s-link:#1c5cae; --s-url:#7d8b8d; --s-em:#7a3a95; --s-tag:#a2325a; --s-quote:#55686b; --s-fm:#5d61a0; --s-li:#c0631a;
+  --find:#ffe270; --find-cur:#ffaf45;
+  --shadow:0 12px 36px rgba(16,34,36,.16);
+  --f-ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ed-size:14.5px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1516; --panel:#151d1e; --sheet:#182122; --line:#2a3637; --text:#e1e9e9; --muted:#8e9d9e;
+    --accent:#5fc0c8; --accent-weak:#1d3638; --hover:#1f2a2b; --sel-a:rgba(95,192,200,.28); --cur-line:rgba(95,192,200,.06);
+    --danger:#ef7a6f; --ok:#61c486; --warn:#e2a04a;
+    --s-mk:#5f7072; --s-h:#7fd3da; --s-code:#e0a46a; --s-link:#7fb0f2; --s-url:#6f8284; --s-em:#cf9be8; --s-tag:#ec8aab; --s-quote:#9db0b2; --s-fm:#a3a7e6; --s-li:#eb9a55;
+    --find:#6b5a12; --find-cur:#9a5d10; --shadow:0 12px 36px rgba(0,0,0,.5); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1516; --panel:#151d1e; --sheet:#182122; --line:#2a3637; --text:#e1e9e9; --muted:#8e9d9e;
+  --accent:#5fc0c8; --accent-weak:#1d3638; --hover:#1f2a2b; --sel-a:rgba(95,192,200,.28); --cur-line:rgba(95,192,200,.06);
+  --danger:#ef7a6f; --ok:#61c486; --warn:#e2a04a;
+  --s-mk:#5f7072; --s-h:#7fd3da; --s-code:#e0a46a; --s-link:#7fb0f2; --s-url:#6f8284; --s-em:#cf9be8; --s-tag:#ec8aab; --s-quote:#9db0b2; --s-fm:#a3a7e6; --s-li:#eb9a55;
+  --find:#6b5a12; --find-cur:#9a5d10; --shadow:0 12px 36px rgba(0,0,0,.5); color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--f-ui);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+kbd{font:11px var(--f-mono);padding:1px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--panel);color:var(--muted)}
+#app{height:100%;display:flex;flex-direction:column;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* toolbar */
+.tb{display:flex;align-items:center;gap:8px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;white-space:nowrap;letter-spacing:-.01em}
+.mark{font:600 12px var(--f-mono);color:var(--sheet);background:var(--accent);border-radius:5px;padding:2px 6px}
+.fname{display:flex;align-items:center;gap:6px;border:1px solid transparent;background:none;border-radius:6px;padding:4px 8px;max-width:240px;color:var(--muted);min-width:0}
+.fname:hover{border-color:var(--line);color:var(--text)}
+.fname span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.grp{display:flex;gap:2px}
+.ib{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;min-width:32px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:none;color:var(--text)}
+.ib:hover:not(:disabled){background:var(--hover);border-color:var(--line)}
+.ib:disabled{opacity:.35;cursor:default}
+.ib.on{background:var(--accent-weak);color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--sheet)}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn.sm{height:26px;padding:0 9px;font-size:12.5px}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:2px}
+.seg button{border:0;background:none;padding:4px 12px;border-radius:5px;color:var(--muted);font-weight:500}
+.seg button.on{background:var(--sheet);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.spacer{flex:1}
+
+/* work area */
+.work{flex:1;min-height:0;display:flex;gap:12px;position:relative}
+.pane{background:var(--sheet);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;min-width:0;min-height:0;flex:1 1 0;overflow:hidden}
+#outline{flex:0 0 220px;background:var(--panel)}
+.ohead{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+#olist{flex:1;overflow:auto;padding:0 6px 12px}
+#olist button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:4px 8px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#olist button:hover{background:var(--hover);color:var(--text)}
+#olist button.on{color:var(--accent);background:var(--accent-weak)}
+#olist button.l1{color:var(--text);font-weight:600}
+#olist .empty{font-size:12.5px;color:var(--muted);padding:6px 8px}
+body.no-outline #outline{display:none}
+body.view-edit #pvPane{display:none}
+body.view-preview #edPane{display:none}
+
+/* format bar */
+.fmt{display:flex;align-items:center;gap:1px;padding:5px 6px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.fmt .ib{height:28px;min-width:28px;padding:0 5px;color:var(--muted)}
+.fmt .ib:hover{color:var(--text)}
+.fmt .sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.fmt b,.fmt i,.fmt s{font-family:var(--f-ui);font-size:14px;color:inherit}
+
+/* find bar */
+.findbar{display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:var(--panel)}
+.findbar input{height:28px;border:1px solid var(--line);border-radius:6px;padding:0 8px;background:var(--sheet);min-width:0;flex:1 1 140px;outline:none;font:13px var(--f-mono)}
+.findbar input:focus{border-color:var(--accent)}
+.findbar input.bad{border-color:var(--danger)}
+.findbar .ib{height:28px;min-width:28px;padding:0 6px}
+.findbar .opt{font:11.5px var(--f-mono);color:var(--muted)}
+.findbar .opt.on{color:var(--accent);background:var(--accent-weak)}
+.fcount{font-size:12px;color:var(--muted);min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* editor */
+.edscroll{flex:1;overflow:auto;position:relative;min-height:0}
+.edinner{position:relative;max-width:860px;margin:0 auto;min-height:100%}
+#hl,#mk,#ta{font-family:var(--f-mono);font-size:var(--ed-size);line-height:1.75;padding:22px 28px 45vh;margin:0;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;tab-size:4;letter-spacing:0;font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}
+#hl,#mk{position:absolute;top:0;left:0;right:0;pointer-events:none}
+#hl{color:var(--text)}
+#hl>div.cur{background:var(--cur-line);box-shadow:-28px 0 0 var(--cur-line),28px 0 0 var(--cur-line)}
+#mk{color:transparent}
+#mk mark{background:var(--find);color:transparent;border-radius:2px}
+#mk mark.cur{background:var(--find-cur)}
+#ta{position:relative;display:block;width:100%;min-height:100%;border:0;outline:0;resize:none;overflow:hidden;background:transparent;color:transparent;caret-color:var(--text)}
+#ta::selection{background:var(--sel-a);color:transparent}
+#ta.plain{color:var(--text)}
+#ta.plain::selection{color:var(--text)}
+#hl.ghost,#hl.ghost *{color:transparent!important}
+#ta::placeholder{color:var(--muted)}
+.s-mk{color:var(--s-mk)} .s-h{color:var(--s-h)} .s-code{color:var(--s-code)} .s-lang{color:var(--s-url)} .s-link{color:var(--s-link)} .s-url{color:var(--s-url)}
+.s-strong{color:var(--text);text-shadow:0 0 .01px currentColor} .s-em{color:var(--s-em)} .s-del{color:var(--s-mk);text-decoration:line-through} .s-tag{color:var(--s-tag)}
+.s-quote{color:var(--s-quote)} .s-qmk{color:var(--s-mk)} .s-li{color:var(--s-li)} .s-task{color:var(--s-li)} .s-fm{color:var(--s-fm)} .s-fn{color:var(--s-link)} .s-pipe{color:var(--s-mk)}
+
+/* preview */
+.pvhead{display:flex;align-items:center;gap:8px;padding:5px 8px 5px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted);min-height:39px}
+.pvhead .spacer{flex:1}
+.pvscroll{flex:1;overflow:auto;min-height:0;background:var(--md-paper)}
+.pre-wrap{position:relative}
+.cbtn{position:absolute;top:6px;right:6px;border:1px solid var(--line);background:var(--sheet);border-radius:5px;font:11px var(--f-ui);padding:2px 8px;color:var(--muted);opacity:0;transition:opacity .12s}
+.md pre:hover .cbtn,.cbtn:focus{opacity:1}
+
+/* status */
+.st{display:flex;align-items:center;gap:14px;padding-block:7px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+.st .ok{color:var(--ok)} .st .warn{color:var(--warn)}
+
+/* menus, modals, toasts */
+.menu{position:fixed;z-index:75;min-width:230px;max-width:330px;background:var(--sheet);border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow);padding:5px;max-height:82vh;overflow:auto}
+.mi{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;border:0;background:none;padding:6px 10px;border-radius:5px;text-align:left;font-size:13px}
+.mi:hover:not(:disabled),.mi:focus-visible{background:var(--accent-weak);outline:none}
+.mi:disabled{opacity:.4;cursor:default}
+.mi .chk{width:14px;display:inline-block;color:var(--accent)}
+.msep{height:1px;background:var(--line);margin:4px 6px}
+.mhead{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:6px 10px 3px;font-weight:600}
+.modal-ov{position:fixed;inset:0;background:rgba(10,20,22,.4);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--sheet);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:440px;max-width:100%;max-height:90%;display:flex;flex-direction:column}
+.modal.wide{width:720px}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px 18px}
+.mh h2{font-size:16px;margin:0}
+.mb{padding:4px 18px 8px;overflow:auto}
+.mb p{margin:0 0 10px;color:var(--muted)}
+.mb label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.mb input.fi{width:100%;height:34px;border:1px solid var(--line);border-radius:6px;padding:0 10px;background:var(--bg);outline:none;font:13px var(--f-mono);color:var(--text)}
+.mb input.fi:focus{border-color:var(--accent)}
+.mb .row2{display:flex;gap:10px}
+.mb .row2 label{flex:1}
+.mf{display:flex;justify-content:flex-end;gap:8px;padding:10px 18px 16px}
+.keys{width:100%;border-collapse:collapse;font-size:13px}
+.keys td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.keys td:first-child{white-space:nowrap;width:1%;padding-right:16px}
+.keys h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:14px 0 4px}
+.keys code{font:12px var(--f-mono);background:var(--panel);padding:1px 4px;border-radius:3px}
+#toasts{position:fixed;bottom:calc(44px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:70;align-items:center;pointer-events:none;max-width:calc(100vw - 32px)}
+.toast{background:var(--text);color:var(--sheet);padding:8px 14px;border-radius:8px;font-size:13px;box-shadow:var(--shadow);animation:tin .15s ease-out}
+.toast.err{background:var(--danger);color:#fff}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion: reduce){.toast{animation:none}.cbtn{transition:none}}
+#dropOv{position:fixed;inset:0;z-index:80;background:color-mix(in srgb,var(--accent) 16%,transparent);border:3px dashed var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:var(--accent);pointer-events:none}
+
+@media (max-width: 900px){
+  #outline{position:absolute;left:0;top:0;bottom:0;width:240px;z-index:20;box-shadow:var(--shadow)}
+  .bname{display:none}
+}
+@media (max-width: 760px){
+  body.view-split .work{flex-direction:column}
+  #hl,#mk,#ta{padding:16px 16px 45vh}
+  #hl>div.cur{box-shadow:-16px 0 0 var(--cur-line),16px 0 0 var(--cur-line)}
+  .st .hide-sm{display:none}
+  .fname{max-width:140px}
+}
+</style>
+<style id="md-style">
+:root{
+  --md-paper:#ffffff; --md-text:#1b2425; --md-muted:#5d6b6d; --md-line:#dbe2e3; --md-accent:#0c6872; --md-code-bg:#f1f5f5; --md-mark:#fff0a3;
+  --md-c-note:#2563c9; --md-c-tip:#2a7a48; --md-c-imp:#7a45c4; --md-c-warn:#a46200; --md-c-caution:#b3372d;
+  --c-kw:#a2325a; --c-str:#2a7a48; --c-num:#1d5fc0; --c-com:#8a979a; --c-fn:#6b3fa0; --c-type:#0c6872; --c-lit:#b45a09; --c-var:#a24b0f; --c-key:#0c5c66; --c-add:#2a7a48; --c-del:#b3372d;
+  --md-serif:"Source Serif 4",Charter,"Iowan Old Style",Georgia,serif; --md-sans:"Instrument Sans",system-ui,sans-serif; --md-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --md-paper:#182122; --md-text:#e2eaea; --md-muted:#93a2a3; --md-line:#2d3a3b; --md-accent:#6cc8cf; --md-code-bg:#11191a; --md-mark:#5c4f12;
+    --md-c-note:#7fb0f2; --md-c-tip:#61c486; --md-c-imp:#bf9bf0; --md-c-warn:#e2a04a; --md-c-caution:#ef7a6f;
+    --c-kw:#ec8aab; --c-str:#8fd59b; --c-num:#7fb2ff; --c-com:#6e8183; --c-fn:#cf9be8; --c-type:#6cc8cf; --c-lit:#f2a65a; --c-var:#e0a46a; --c-key:#7fd3da; --c-add:#61c486; --c-del:#ef7a6f;
+  }
+}
+:root[data-theme="dark"]{
+  --md-paper:#182122; --md-text:#e2eaea; --md-muted:#93a2a3; --md-line:#2d3a3b; --md-accent:#6cc8cf; --md-code-bg:#11191a; --md-mark:#5c4f12;
+  --md-c-note:#7fb0f2; --md-c-tip:#61c486; --md-c-imp:#bf9bf0; --md-c-warn:#e2a04a; --md-c-caution:#ef7a6f;
+  --c-kw:#ec8aab; --c-str:#8fd59b; --c-num:#7fb2ff; --c-com:#6e8183; --c-fn:#cf9be8; --c-type:#6cc8cf; --c-lit:#f2a65a; --c-var:#e0a46a; --c-key:#7fd3da; --c-add:#61c486; --c-del:#ef7a6f;
+}
+.md{font-family:var(--md-serif);font-size:var(--md-size,17px);line-height:1.68;color:var(--md-text);max-width:70ch;margin:0 auto;padding:30px 32px 30vh;overflow-wrap:break-word;font-optical-sizing:auto}
+.md>:first-child{margin-top:0}
+.md.big>*{content-visibility:auto;contain-intrinsic-size:auto 3em}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{font-family:var(--md-serif);line-height:1.22;margin:1.6em 0 .55em;text-wrap:balance;font-weight:650;letter-spacing:-.012em;scroll-margin-top:12px}
+.md h1{font-size:2.05em;font-weight:700;letter-spacing:-.02em}
+.md h2{font-size:1.5em;padding-bottom:.25em;border-bottom:1px solid var(--md-line)}
+.md h3{font-size:1.22em}
+.md h4{font-size:1.04em}
+.md h5,.md h6{font-family:var(--md-sans);font-size:.78em;text-transform:uppercase;letter-spacing:.08em;color:var(--md-muted)}
+.md .anchor{margin-left:.35em;color:var(--md-muted);text-decoration:none;opacity:0;font-weight:400;font-size:.8em}
+.md h1:hover .anchor,.md h2:hover .anchor,.md h3:hover .anchor,.md h4:hover .anchor,.md h5:hover .anchor,.md h6:hover .anchor,.md .anchor:focus{opacity:1}
+.md p,.md ul,.md ol,.md blockquote,.md pre,.md table,.md dl,.md details,.md .callout,.md figure{margin:0 0 1.05em}
+.md a{color:var(--md-accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.18em}
+.md strong{font-weight:650}
+.md ul,.md ol{padding-left:1.6em}
+.md li{margin:.22em 0}
+.md li>ul,.md li>ol{margin:.2em 0 0}
+.md li>p{margin:.4em 0}
+.md li.task-item{list-style:none;position:relative}
+.md li.task-item>input.task{position:absolute;left:-1.45em;top:.42em;margin:0;width:.95em;height:.95em;accent-color:var(--md-accent);cursor:pointer}
+.md li.task-item>p>input.task{margin:0 .45em 0 -1.45em;accent-color:var(--md-accent)}
+.md blockquote{padding:.15em 0 .15em 1.1em;border-left:3px solid var(--md-line);color:var(--md-muted);font-style:italic}
+.md blockquote>:last-child,.md .callout>:last-child,.md li>:last-child{margin-bottom:0}
+.md .callout{--c:var(--md-c-note);border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 8%,transparent);padding:.65em 1em;border-radius:0 6px 6px 0}
+.md .callout-title{font-family:var(--md-sans);font-weight:600;font-size:.82em;text-transform:uppercase;letter-spacing:.07em;color:var(--c);margin:0 0 .3em}
+.md .callout-tip{--c:var(--md-c-tip)} .md .callout-important{--c:var(--md-c-imp)} .md .callout-warning{--c:var(--md-c-warn)} .md .callout-caution{--c:var(--md-c-caution)}
+.md code{font-family:var(--md-mono);font-size:.82em;background:var(--md-code-bg);padding:.12em .36em;border-radius:4px}
+.md pre{background:var(--md-code-bg);border:1px solid var(--md-line);border-radius:8px;padding:14px 16px;overflow:auto;position:relative;line-height:1.55;font-size:.82em}
+.md pre code{background:none;padding:0;font-size:1em;white-space:pre}
+.md pre[data-lang]::before{content:attr(data-lang);position:absolute;top:6px;right:10px;font:11px var(--md-sans);color:var(--md-muted);text-transform:lowercase}
+.md pre[data-lang]:hover::before{opacity:0}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;font-family:var(--md-sans);font-size:.86em;font-variant-numeric:tabular-nums;width:max-content}
+.md th,.md td{border:1px solid var(--md-line);padding:6px 12px;text-align:left}
+.md th{background:var(--md-code-bg);font-weight:600}
+.md [align="center"]{text-align:center} .md [align="right"]{text-align:right}
+.md tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--md-code-bg) 55%,transparent)}
+.md table.fm{font-size:.8em;margin-bottom:1.6em}
+.md table.fm th{background:none;color:var(--md-muted);font-weight:500}
+.md img{max-width:100%;height:auto;border-radius:4px}
+.md hr{border:0;border-top:1px solid var(--md-line);margin:2em 0}
+.md mark{background:var(--md-mark);color:inherit;padding:0 .1em;border-radius:2px}
+.md kbd{font:.78em var(--md-mono);border:1px solid var(--md-line);border-bottom-width:2px;border-radius:4px;padding:.05em .4em;background:var(--md-code-bg)}
+.md del{color:var(--md-muted)}
+.md sup.fnref{font-size:.72em;line-height:0}
+.md sup.fnref a{text-decoration:none;padding:0 .1em}
+.md .footnotes{font-size:.86em;color:var(--md-muted);border-top:1px solid var(--md-line);margin-top:2.4em;padding-top:.8em}
+.md .footnotes a.fnback{text-decoration:none}
+.md details{border:1px solid var(--md-line);border-radius:6px;padding:.5em .9em}
+.md summary{cursor:pointer;font-weight:600}
+.md dt{font-weight:650} .md dd{margin:0 0 .6em 1.4em}
+.c-kw{color:var(--c-kw)} .c-str{color:var(--c-str)} .c-num{color:var(--c-num)} .c-com{color:var(--c-com);font-style:italic} .c-fn{color:var(--c-fn)} .c-type{color:var(--c-type)} .c-lit{color:var(--c-lit)} .c-var{color:var(--c-var)} .c-key{color:var(--c-key)} .c-tag{color:var(--c-kw)} .c-attr{color:var(--c-fn)}
+.c-add{color:var(--c-add)} .c-del{color:var(--c-del)} .c-meta{color:var(--c-type)}
+@media (max-width: 760px){ .md{padding:20px 18px 30vh;font-size:var(--md-size,16px)} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="tb">
+    <div class="brand"><span class="mark">M↓</span><span class="bname">Markdown Workbench</span></div>
+    <button class="fname" id="fname" title="Rename file"><span id="fnameText">untitled.md</span><span id="dirtyDot" class="dot" title="Unsaved changes" hidden></span></button>
+    <div class="grp">
+      <button class="ib" id="bNew" data-icon="file" title="New document"></button>
+      <button class="ib" id="bOpen" data-icon="open" title="Open file (Ctrl+O)"></button>
+      <button class="ib" id="bSave" data-icon="save" title="Save .md (Ctrl+S)"></button>
+    </div>
+    <div class="grp">
+      <button class="ib" id="bUndo" data-icon="undo" title="Undo (Ctrl+Z)"></button>
+      <button class="ib" id="bRedo" data-icon="redo" title="Redo (Ctrl+Y)"></button>
+    </div>
+    <div class="seg" id="viewSeg">
+      <button data-view="edit" title="Editor only">Edit</button>
+      <button data-view="split" title="Editor and preview">Split</button>
+      <button data-view="preview" title="Preview only">Preview</button>
+    </div>
+    <button class="btn" id="bTools" data-icon="tool">Tools</button>
+    <div class="spacer"></div>
+    <div class="grp">
+      <button class="ib" id="bOutline" data-icon="outline" title="Outline (Ctrl+\)"></button>
+      <button class="ib" id="bTheme" data-icon="theme" title="Light / dark"></button>
+      <button class="ib" id="bHelp" data-icon="help" title="Shortcuts and syntax (Ctrl+/)"></button>
+    </div>
+  </header>
+
+  <main class="work">
+    <aside class="pane" id="outline" aria-label="Outline">
+      <div class="ohead"><span>Outline</span><button class="ib" style="height:22px;min-width:22px;padding:0" id="oClose" data-icon="x" title="Close outline"></button></div>
+      <nav id="olist"></nav>
+    </aside>
+
+    <section class="pane" id="edPane" aria-label="Markdown source">
+      <div class="fmt" id="fmtBar">
+        <button class="ib" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button class="ib" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button class="ib" data-cmd="strike" title="Strikethrough (Ctrl+Shift+X)"><s>S</s></button>
+        <button class="ib" data-cmd="code" data-icon="code" title="Inline code (Ctrl+E)"></button>
+        <span class="sep"></span>
+        <button class="ib" data-cmd="heading" title="Heading (Ctrl+Alt+1…6)" style="font-weight:600;font-size:13px">H</button>
+        <button class="ib" data-cmd="link" data-icon="link" title="Link (Ctrl+K)"></button>
+        <button class="ib" data-cmd="image" data-icon="image" title="Image"></button>
+        <span class="sep"></span>
+        <button class="ib" data-cmd="ul" data-icon="ul" title="Bulleted list (Ctrl+Shift+8)"></button>
+        <button class="ib" data-cmd="ol" data-icon="ol" title="Numbered list (Ctrl+Shift+7)"></button>
+        <button class="ib" data-cmd="task" data-icon="task" title="Task list (Ctrl+Shift+9)"></button>
+        <button class="ib" data-cmd="quote" data-icon="quote" title="Quote (Ctrl+Shift+.)"></button>
+        <span class="sep"></span>
+        <button class="ib" data-cmd="table" data-icon="table" title="Insert table"></button>
+        <button class="ib" data-cmd="codeblock" data-icon="block" title="Code block (Ctrl+Shift+K)"></button>
+        <button class="ib" data-cmd="hr" data-icon="hr" title="Divider"></button>
+        <span class="sep"></span>
+        <button class="ib" data-cmd="find" data-icon="search" title="Find and replace (Ctrl+F)"></button>
+      </div>
+      <div class="findbar" id="findBar" hidden>
+        <input id="fIn" placeholder="Find" spellcheck="false" autocomplete="off" aria-label="Find">
+        <span class="fcount" id="fCount"></span>
+        <button class="ib" id="fPrev" data-icon="up" title="Previous (Shift+Enter)"></button>
+        <button class="ib" id="fNext" data-icon="down" title="Next (Enter)"></button>
+        <button class="ib opt" id="fCase" title="Match case">Aa</button>
+        <button class="ib opt" id="fWord" title="Whole word">W</button>
+        <button class="ib opt" id="fRe" title="Regular expression">.*</button>
+        <input id="rIn" placeholder="Replace" spellcheck="false" autocomplete="off" aria-label="Replace with">
+        <button class="btn sm" id="rOne">Replace</button>
+        <button class="btn sm" id="rAll">All</button>
+        <button class="ib" id="fClose" data-icon="x" title="Close (Esc)"></button>
+      </div>
+      <div class="edscroll" id="edScroll">
+        <div class="edinner">
+          <div id="mk" aria-hidden="true"></div>
+          <div id="hl" aria-hidden="true"></div>
+          <textarea id="ta" spellcheck="true" autocapitalize="off" aria-label="Markdown source" placeholder="Start writing Markdown…"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="pane" id="pvPane" aria-label="Preview">
+      <div class="pvhead"><span id="pvInfo">Preview</span><span class="spacer"></span>
+        <button class="btn sm" id="pvCopy" data-icon="copy" title="Copy formatted text for pasting into email or docs">Copy formatted</button>
+        <button class="btn sm" id="pvExport" title="Download as a standalone HTML page">Export HTML</button>
+      </div>
+      <div class="pvscroll" id="pvScroll"><article class="md" id="preview"></article></div>
+    </section>
+  </main>
+
+  <footer class="st">
+    <span id="stPos">Ln 1, Col 1</span>
+    <span id="stWords"></span>
+    <span id="stChars" class="hide-sm"></span>
+    <span id="stRead" class="hide-sm"></span>
+    <span class="spacer"></span>
+    <span id="stSave"></span>
+  </footer>
+
+  <input type="file" id="fileIn" accept=".md,.markdown,.mdown,.mkd,.txt,.html,.htm,text/markdown,text/plain,text/html" hidden>
+  <div id="dropOv" hidden>Drop a Markdown file to open it</div>
+  <div id="toasts" aria-live="polite"></div>
+
+<script type="text/markdown" id="sample">
+---
+title: Harbor Lights 2.3
+owner: Platform team
+status: draft
+---
+
+# Harbor Lights 2.3 release notes
+
+Harbor Lights is a **status page generator** for small teams. This release focuses on *faster builds*, stricter ~~YAML~~ config validation, and accessible themes.[^perf]
+
+> [!TIP]
+> This is a sample document. Edit on the left and the preview updates as you type. Double-click anything in the preview to jump to its source, and tick the checkboxes below to update the Markdown.
+
+## Highlights
+
+- Incremental builds: only changed pages are rebuilt
+- New `hl check` command validates your config before deploy
+- Two new themes: **Tidewater** and **Signal**
+  - Both meet WCAG 2.2 AA contrast
+  - Both support dark mode
+
+## Upgrade checklist
+
+- [x] Back up `harbor.yml`
+- [x] Read the breaking changes below
+- [ ] Run `hl check` and fix any warnings
+- [ ] Deploy to staging
+
+## Build times
+
+| Site size | 2.2 | 2.3 | Change |
+|:--|--:|--:|:-:|
+| 50 pages | 4.1 s | 1.2 s | −71% |
+| 500 pages | 38 s | 6.4 s | −83% |
+| 5,000 pages | 6 min 10 s | 52 s | −86% |
+
+## Breaking changes
+
+1. `incidents.yml` is now an `incidents/` folder, one file per incident
+2. The `--legacy` flag was removed
+3. Node 20 or newer is required
+
+```yaml
+# harbor.yml
+site:
+  name: "Acme Status"
+  theme: tidewater
+checks:
+  - url: https://api.example.com/health
+    interval: 30s
+    retries: 3
+```
+
+```js
+// checks/latency.js: a custom check
+export default async function check({ fetch }) {
+  const started = Date.now();
+  const res = await fetch("https://api.example.com/ping");
+  return { ok: res.ok, latencyMs: Date.now() - started };
+}
+```
+
+> Status pages are read in the worst five minutes of someone's week. Make them fast and plain.
+> — Harbor Lights design notes
+
+---
+
+Questions? Read the [migration guide](https://example.com/docs/migrate) or press <kbd>Ctrl</kbd> + <kbd>/</kbd> for shortcuts.
+
+[^perf]: Measured on a 4-core CI runner with a warm cache.
+</script>
+</div>
+
+<script id="app-script">
+'use strict';
+/* Captured before anything changes the DOM, so "Download app" can rebuild this exact file. */
+const APP_SRC = (() => {
+  try {
+    const g = id => document.getElementById(id).outerHTML;
+    return '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<title>Markdown Workbench</title>\n'
+      + g('app-fonts') + '\n' + g('app-style') + '\n' + g('md-style') + '\n</head>\n<body>\n' + g('app') + '\n' + g('app-script') + '\n</body>\n</html>\n';
+  } catch { return null; }
+})();
+const FONT_URL = 'https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap';
+
+/* ======================================================================
+   Small utilities
+   ====================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const debounce = (fn, ms) => { let t; const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), typeof ms === 'function' ? ms() : ms); }; d.now = (...a) => { clearTimeout(t); fn(...a); }; return d; };
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
+};
+const fmtN = n => n.toLocaleString();
+const svg = d => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  file: svg('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 12v6M9 15h6"/>'),
+  open: svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+  save: svg('<path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8"/><path d="M7 21v-7h10v7"/>'),
+  undo: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>'),
+  redo: svg('<path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/>'),
+  tool: svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'),
+  outline: svg('<path d="M4 6h16M8 12h12M8 18h12"/><circle cx="4" cy="12" r=".6"/><circle cx="4" cy="18" r=".6"/>'),
+  theme: svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/>'),
+  help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/>'),
+  x: svg('<path d="M18 6 6 18M6 6l12 12"/>'),
+  code: svg('<path d="m8 8-4 4 4 4M16 8l4 4-4 4"/>'),
+  link: svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
+  image: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/>'),
+  ul: svg('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/>'),
+  ol: svg('<path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 5h1v4M4 9h2M4 14.5c0-.8.6-1.5 1.3-1.5s1.2.5 1.2 1.1c0 1-2.5 1.6-2.5 3.4h2.5" stroke-width="1.5"/>'),
+  task: svg('<rect x="3" y="4" width="6" height="6" rx="1"/><path d="m4.5 7 1 1 2-2"/><path d="M12 7h9M12 17h9"/><rect x="3" y="14" width="6" height="6" rx="1"/>'),
+  quote: svg('<path d="M4 6v12"/><path d="M9 8h11M9 12h11M9 16h7"/>'),
+  table: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M10 4v16"/>'),
+  block: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m9 10-2 2 2 2M15 10l2 2-2 2"/>'),
+  hr: svg('<path d="M3 12h18"/><path d="M8 7h8M8 17h8" stroke-width="1.2" opacity=".5"/>'),
+  search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+  up: svg('<path d="m18 15-6-6-6 6"/>'),
+  down: svg('<path d="m6 9 6 6 6-6"/>'),
+  copy: svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>')
+};
+
+/* ======================================================================
+   Code highlighting for fenced blocks
+   ====================================================================== */
+const HL = (() => {
+  const e = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const W = s => new Set(s.split(/\s+/).filter(Boolean));
+  const jsKw = 'await break case catch class const continue debugger default delete do else export extends finally for from function if import in instanceof let new of return static super switch this throw try typeof var void while with yield async get set as';
+  const lit = 'true false null undefined NaN Infinity';
+  const D = {
+    js: { kw: W(jsKw), lit: W(lit), lc: '//', bc: 1, bt: 1 },
+    ts: { kw: W(jsKw + ' interface type enum implements namespace declare readonly private public protected abstract keyof infer is satisfies'), lit: W(lit), types: W('string number boolean any unknown never void object bigint symbol'), lc: '//', bc: 1, bt: 1 },
+    py: { kw: W('and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield match case print'), lit: W('True False None self cls'), lc: '#', tq: 1, dec: 1 },
+    sh: { kw: W('if then else elif fi for in do done while until case esac function return local export readonly unset shift exit set source alias echo cd sudo'), lit: W('true false'), lc: '#', vars: 1 },
+    go: { kw: W('break case chan const continue default defer else fallthrough for func go goto if import interface map package range return select struct switch type var'), lit: W('true false nil iota'), types: W('string int int64 int32 uint uint64 byte rune float64 float32 bool error any'), lc: '//', bc: 1, bt: 1 },
+    rust: { kw: W('as async await break const continue crate dyn else enum extern fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait type unsafe use where while'), lit: W('true false None Some Ok Err'), types: W('i8 i16 i32 i64 u8 u16 u32 u64 usize isize f32 f64 bool char str String Vec Option Result Box'), lc: '//', bc: 1 },
+    clike: { kw: W('abstract auto break case catch char class const continue default do double else enum extends final finally float for goto if implements import int interface long namespace new package private protected public return short signed sizeof static struct super switch this throw throws try typedef union unsigned using virtual void volatile while bool var val fun override let func guard defer include define echo function'), lit: W('true false null nullptr NULL nil'), lc: '//', bc: 1, vars: 1 },
+    ruby: { kw: W('alias and begin break case class def defined do else elsif end ensure for if in module next not or redo rescue retry return self super then undef unless until when while yield require attr_accessor puts'), lit: W('true false nil'), lc: '#' },
+    sql: { kw: W('select from where and or not insert into values update set delete create table alter drop index view join left right inner outer full on as group by order having limit offset union all distinct case when then else end is like in between exists primary key foreign references default with returning asc desc count sum avg min max coalesce'), lit: W('true false null'), lc: '--', bc: 1, ci: 1 },
+    json: { kw: W(''), lit: W('true false null'), keys: 1 }
+  };
+  const alias = { javascript: 'js', jsx: 'js', mjs: 'js', cjs: 'js', node: 'js', typescript: 'ts', tsx: 'ts', python: 'py', py3: 'py', bash: 'sh', shell: 'sh', zsh: 'sh', console: 'sh', golang: 'go', rs: 'rust', java: 'clike', c: 'clike', cpp: 'clike', 'c++': 'clike', h: 'clike', cs: 'clike', csharp: 'clike', kotlin: 'clike', kt: 'clike', swift: 'clike', php: 'clike', scala: 'clike', dart: 'clike', rb: 'ruby', postgres: 'sql', postgresql: 'sql', mysql: 'sql', sqlite: 'sql', jsonc: 'json', json5: 'json', yml: 'yaml', xml: 'html', svg: 'html', vue: 'html', markup: 'html', scss: 'css', less: 'css', patch: 'diff' };
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function generic(code, d) {
+    const com = [], str = [String.raw`"(?:[^"\\\n]|\\.)*"`, String.raw`'(?:[^'\\\n]|\\.)*'`];
+    if (d.bc) com.push(String.raw`/\*[\s\S]*?\*/`);
+    if (d.lc) com.push(reEsc(d.lc) + '[^\\n]*');
+    if (d.tq) str.unshift('"""[\\s\\S]*?"""', "'''[\\s\\S]*?'''");
+    if (d.bt) str.push(String.raw`\x60(?:[^\x60\\]|\\.)*\x60`);
+    const extra = [];
+    if (d.vars) extra.push(String.raw`\$\{?[\w@#?]+\}?`);
+    if (d.dec) extra.push(String.raw`@[\w.]+`);
+    const re = new RegExp(`(${com.join('|') || '(?!)'})|(${str.join('|')})|(\\b(?:0[xX][\\da-fA-F_]+|\\d[\\d_]*(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)\\b)|(${extra.join('|') || '(?!)'})|([A-Za-z_$][\\w$]*)`, 'g');
+    let out = '', last = 0, m;
+    while ((m = re.exec(code))) {
+      if (!m[0]) { re.lastIndex++; continue; }
+      out += e(code.slice(last, m.index)); last = re.lastIndex;
+      const tok = e(m[0]);
+      if (m[1]) out += `<span class="c-com">${tok}</span>`;
+      else if (m[2]) out += `<span class="${d.keys && /^\s*:/.test(code.slice(last)) ? 'c-key' : 'c-str'}">${tok}</span>`;
+      else if (m[3]) out += `<span class="c-num">${tok}</span>`;
+      else if (m[4]) out += `<span class="c-var">${tok}</span>`;
+      else {
+        const w = d.ci ? m[0].toLowerCase() : m[0];
+        if (d.kw.has(w)) out += `<span class="c-kw">${tok}</span>`;
+        else if (d.lit && d.lit.has(w)) out += `<span class="c-lit">${tok}</span>`;
+        else if (d.types && d.types.has(w)) out += `<span class="c-type">${tok}</span>`;
+        else if (/^\s*\(/.test(code.slice(last))) out += `<span class="c-fn">${tok}</span>`;
+        else out += tok;
+      }
+    }
+    return out + e(code.slice(last));
+  }
+  function yaml(code) {
+    return code.split('\n').map(l => {
+      const c = /(^|\s)#.*$/.exec(l);
+      let body = c ? l.slice(0, c.index + c[1].length) : l;
+      const com = c ? `<span class="c-com">${e(l.slice(c.index + c[1].length))}</span>` : '';
+      const m = /^(\s*(?:-\s+)?)([^\s:#'"][^:#]*?|"[^"]*"|'[^']*')(:)(\s|$)(.*)$/.exec(body);
+      const val = v => {
+        const t = v.trim();
+        if (/^(true|false|yes|no|on|off|null|~)$/i.test(t)) return v.replace(t, `<span class="c-lit">${e(t)}</span>`);
+        if (/^-?\d+(\.\d+)?([a-z]+)?$/i.test(t)) return v.replace(t, `<span class="c-num">${e(t)}</span>`);
+        if (/^(".*"|'.*')$/.test(t)) return v.replace(t, `<span class="c-str">${e(t)}</span>`);
+        return e(v);
+      };
+      if (m) return e(m[1]) + `<span class="c-key">${e(m[2])}</span>${m[3]}${m[4]}` + val(m[5]) + com;
+      const li = /^(\s*-\s+)(.*)$/.exec(body);
+      if (li) return e(li[1]) + val(li[2]) + com;
+      return val(body) + com;
+    }).join('\n');
+  }
+  function markup(code) {
+    return code.replace(/(<!--[\s\S]*?-->)|(<\/?)([\w:-]+)((?:\s+[\w:@.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)(\s*\/?>)|([^<]+|<)/g, (m, com, open, name, attrs, close, text) => {
+      if (com) return `<span class="c-com">${e(com)}</span>`;
+      if (text !== undefined) return e(text);
+      const a = attrs.replace(/([\w:@.-]+)(\s*=\s*)?("[^"]*"|'[^']*'|[^\s>]+)?/g, (x, n, eq, v) => `<span class="c-attr">${e(n)}</span>${eq ? e(eq) : ''}${v ? `<span class="c-str">${e(v)}</span>` : ''}`);
+      return `${e(open)}<span class="c-tag">${e(name)}</span>${a}${e(close)}`;
+    });
+  }
+  function css(code) {
+    return code.replace(/(\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|([\w-]+)(?=\s*:[^{};]*;|\s*:[^{};]*$)|(#[0-9a-fA-F]{3,8}\b|-?\d*\.?\d+(?:px|em|rem|%|vh|vw|s|ms|deg|fr)?\b)|(@[\w-]+)|([^\/"'\w#@-]+|[\s\S])/g, (m, com, str, prop, num, at, other) => {
+      if (com) return `<span class="c-com">${e(com)}</span>`;
+      if (str) return `<span class="c-str">${e(str)}</span>`;
+      if (prop) return `<span class="c-key">${e(prop)}</span>`;
+      if (num) return `<span class="c-num">${e(num)}</span>`;
+      if (at) return `<span class="c-kw">${e(at)}</span>`;
+      return e(m);
+    });
+  }
+  function diff(code) {
+    return code.split('\n').map(l => /^\+/.test(l) ? `<span class="c-add">${e(l)}</span>` : /^-/.test(l) ? `<span class="c-del">${e(l)}</span>` : /^@@/.test(l) ? `<span class="c-meta">${e(l)}</span>` : e(l)).join('\n');
+  }
+  return function highlight(code, lang) {
+    const k = alias[lang] || lang;
+    try {
+      if (k === 'yaml') return yaml(code);
+      if (k === 'html') return markup(code);
+      if (k === 'css') return css(code);
+      if (k === 'diff') return diff(code);
+      if (D[k]) return generic(code, D[k]);
+    } catch {}
+    return e(code);
+  };
+})();
+
+/* ======================================================================
+   Markdown renderer (CommonMark core + GitHub extensions)
+   ====================================================================== */
+const MD = (() => {
+  const escH = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escA = s => escH(String(s)).replace(/"/g, '&quot;');
+  const unesc = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  const norm = s => s.trim().replace(/\s+/g, ' ').toLowerCase();
+  const slugId = s => s.replace(/[^\w-]/g, '_');
+  const reFence = /^( {0,3})(`{3,}|~{3,})(.*)$/;
+  const reFenceClose = /^ {0,3}(`{3,}|~{3,})[ \t]*$/;
+  const reATX = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?[ \t]*$/;
+  const reHR = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/;
+  const reQuote = /^ {0,3}> ?/;
+  const reDelim = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+  const reHtml = /^ {0,3}(?:<\/?(?:address|article|aside|blockquote|details|summary|div|dl|dt|dd|fieldset|figure|figcaption|footer|header|hr|li|main|nav|ol|p|pre|section|table|thead|tbody|tfoot|tr|td|th|ul|center|h[1-6]|picture|video|audio|br)(?=[\s/>]|$)|<!--)/i;
+  const EMO = { smile: '😄', grin: '😁', joy: '😂', wink: '😉', heart: '❤️', '+1': '👍', thumbsup: '👍', '-1': '👎', tada: '🎉', rocket: '🚀', fire: '🔥', sparkles: '✨', star: '⭐', warning: '⚠️', check: '✅', white_check_mark: '✅', x: '❌', bulb: '💡', memo: '📝', eyes: '👀', bug: '🐛', construction: '🚧', lock: '🔒', zap: '⚡', wave: '👋', thinking: '🤔', pushpin: '📌', calendar: '📅', link: '🔗', book: '📖', question: '❓', exclamation: '❗', arrow_right: '➡️' };
+
+  function listInfo(t) {
+    const m = /^( {0,3})([*+-]|(\d{1,9})([.)]))(?:([ \t]+)(.*))?$/.exec(t);
+    if (!m) return null;
+    const indent = m[1].length, marker = m[2], sp = (m[5] || '').length, rest = m[6] ?? '';
+    const ci = indent + marker.length + (sp === 0 || sp > 4 ? 1 : sp);
+    return { indent, marker, ordered: !!m[3], start: m[3] ? parseInt(m[3], 10) : 1, delim: m[4] || marker, ci, content: sp > 4 ? ' '.repeat(sp - 1) + rest : rest, empty: !rest.trim() };
+  }
+  function fenceOpen(t) { const m = reFence.exec(t); return m && !(m[2][0] === '`' && m[3].includes('`')) ? m : null; }
+  function interrupts(t) {
+    if (reATX.test(t) || reHR.test(t) || reQuote.test(t) || reHtml.test(t) || fenceOpen(t)) return true;
+    const li = listInfo(t);
+    return !!(li && !li.empty && (!li.ordered || li.start === 1));
+  }
+  function splitRow(t) {
+    t = t.trim();
+    if (t.startsWith('|')) t = t.slice(1);
+    if (t.endsWith('|') && !t.endsWith('\\|')) t = t.slice(0, -1);
+    const cells = []; let cur = '', code = false;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (c === '\\' && t[i + 1] === '|') { cur += code ? '|' : '\\|'; i++; continue; }
+      if (c === '`') code = !code;
+      if (c === '|' && !code) { cells.push(cur); cur = ''; continue; }
+      cur += c;
+    }
+    cells.push(cur);
+    return cells;
+  }
+  function isTableStart(L, i) { return L[i].t.includes('|') && i + 1 < L.length && reDelim.test(L[i + 1].t) && L[i + 1].t.includes('-') && (L[i + 1].t.includes('|') || splitRow(L[i].t).length === 1); }
+
+  function restore(s, ph) { for (let k = 0; k < 8 && s.includes('\u0000'); k++) s = s.replace(/\u0000(\d+)\u0000/g, (m, i) => ph[+i]); return s; }
+
+  function inline(src, ctx) {
+    const ph = []; const put = h => `\u0000${ph.push(h) - 1}\u0000`;
+    let s = src;
+    s = s.replace(/(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g, (m, tk, c) => put(`<code>${escH(c.replace(/\n/g, ' ').replace(/^ (?=[\s\S]*\S[\s\S]* $)([\s\S]*) $/, '$1'))}</code>`));
+    s = s.replace(/\\\n/g, () => put('<br>') + '\n');
+    s = s.replace(/\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/g, (m, c) => put(escH(c)));
+    s = s.replace(/<((?:https?|ftp):\/\/[^\s<>]+|mailto:[^\s<>]+)>/gi, (m, u) => put(`<a href="${escA(u)}">${escH(u)}</a>`));
+    s = s.replace(/<([\w.+-]+@[\w-]+(?:\.[\w-]+)+)>/g, (m, u) => put(`<a href="mailto:${escA(u)}">${escH(u)}</a>`));
+    if (ctx.opts.html) s = s.replace(/<\/?[A-Za-z][\w-]*(?:\s+[\w:.@-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*\s*\/?>|<!--[\s\S]*?-->/g, m => put(m));
+    s = s.replace(/&(?!#?[A-Za-z0-9]+;)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const urlOf = u => unesc(u).replace(/^<|>$/g, '');
+    // images
+    s = s.replace(/!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*((?:&lt;[^\s]*?&gt;)|[^\s)]*(?:\([^\s)]*\)[^\s)]*)*)(?:\s+"([^"]*)")?\s*\)/g, (m, alt, url, title) =>
+      put(`<img src="${escA(urlOf(url))}" alt="${escA(unesc(restore(alt, ph).replace(/<[^>]+>/g, '')))}"${title ? ` title="${escA(unesc(title))}"` : ''}>`));
+    // footnote references
+    s = s.replace(/\[\^([^\]\s]+)\]/g, (m, id) => {
+      if (!ctx.fns.has(id)) return m;
+      let num = ctx.fnOrder.indexOf(id);
+      if (num < 0) { ctx.fnOrder.push(id); num = ctx.fnOrder.length - 1; }
+      const sid = slugId(id), first = !ctx.fnSeen.has(id); ctx.fnSeen.add(id);
+      return put(`<sup class="fnref"><a href="#fn-${sid}"${first ? ` id="fnref-${sid}"` : ''}>${num + 1}</a></sup>`);
+    });
+    // inline links
+    s = s.replace(/\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*((?:&lt;[^\s]*?&gt;)|[^\s)]*(?:\([^\s)]*\)[^\s)]*)*)(?:\s+"([^"]*)")?\s*\)/g, (m, text, url, title) =>
+      put(`<a href="${escA(urlOf(url))}"${title ? ` title="${escA(unesc(title))}"` : ''}>`) + text + put('</a>'));
+    // reference links
+    s = s.replace(/\[((?:[^\[\]]|\[[^\[\]]*\])+)\]\[([^\]]*)\]/g, (m, text, ref) => {
+      const r = ctx.refs.get(norm(ref || text));
+      return r ? put(`<a href="${escA(r.url)}"${r.title ? ` title="${escA(r.title)}"` : ''}>`) + text + put('</a>') : m;
+    });
+    s = s.replace(/\[([^\[\]\u0000]+)\](?![(\[:])/g, (m, text) => {
+      const r = ctx.refs.get(norm(text));
+      return r ? put(`<a href="${escA(r.url)}"${r.title ? ` title="${escA(r.title)}"` : ''}>`) + text + put('</a>') : m;
+    });
+    // bare URLs
+    s = s.replace(/(^|[\s(*_~])((?:https?:\/\/|www\.)[^\s<\u0000]*[^\s<\u0000.,;:!?'")\]*_~])/g, (m, pre, u) => pre + put(`<a href="${escA(unesc(u.startsWith('www.') ? 'http://' + u : u))}">${u}</a>`));
+    // emphasis
+    s = s.replace(/(\*\*\*|___)(?=\S)([\s\S]*?\S)\1/g, '<strong><em>$2</em></strong>');
+    s = s.replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/(^|[^\w])__(?=\S)([\s\S]*?\S)__(?!\w)/g, '$1<strong>$2</strong>');
+    s = s.replace(/(^|[^*])\*(?=[^\s*])([\s\S]*?[^\s*])\*(?!\*)/g, '$1<em>$2</em>');
+    s = s.replace(/(^|[^\w])_(?=[^\s_])([\s\S]*?[^\s_])_(?!\w)/g, '$1<em>$2</em>');
+    s = s.replace(/~~(?=\S)([\s\S]*?\S)~~/g, '<del>$1</del>');
+    s = s.replace(/==(?=[^\s=])([^=\n]*?[^\s=])==/g, '<mark>$1</mark>');
+    s = s.replace(/:([a-z0-9_+-]+):/g, (m, k) => EMO[k] || m);
+    s = s.replace(/ {2,}\n/g, '<br>\n');
+    if (ctx.opts.breaks) s = s.replace(/(<br>)?\n/g, '<br>\n');
+    return restore(s, ph);
+  }
+
+  function heading(level, txt, n, ctx) {
+    const html = inline(txt, ctx);
+    const plain = html.replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+    const base = plain.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, '').trim().replace(/\s+/g, '-') || 'section';
+    let id = base, k = 1; while (ctx.slugs.has(id)) id = `${base}-${k++}`; ctx.slugs.add(id);
+    ctx.headings.push({ level, text: plain || '(untitled)', id, line: n });
+    return `<h${level} id="${id}" data-line="${n}">${html}<a class="anchor" href="#${id}" aria-label="Link to this section">#</a></h${level}>`;
+  }
+  function codeBlock(code, lang, n) {
+    const l = lang.toLowerCase();
+    return `<pre class="code" data-line="${n}"${l ? ` data-lang="${escA(l)}"` : ''}><code>${HL(code, l)}</code></pre>`;
+  }
+
+  function list(L, i, ctx) {
+    const first = listInfo(L[i].t);
+    const ordered = first.ordered, key = first.delim;
+    const items = []; let loose = false, pendingBlank = false;
+    while (i < L.length) {
+      const li = listInfo(L[i].t);
+      if (!li || li.ordered !== ordered || li.delim !== key || (items.length && reHR.test(L[i].t))) break;
+      if (pendingBlank) loose = true;
+      const lines = [{ t: li.content, n: L[i].n }], n0 = L[i].n; i++;
+      let blank = false;
+      while (i < L.length) {
+        const lt = L[i].t;
+        if (!lt.trim()) { lines.push({ t: '', n: L[i].n }); blank = true; i++; continue; }
+        const ind = lt.length - lt.replace(/^ +/, '').length;
+        if (ind >= li.ci) { lines.push({ t: lt.slice(li.ci), n: L[i].n }); blank = false; i++; continue; }
+        if (blank) break;
+        if (listInfo(lt) || interrupts(lt)) break;
+        lines.push({ t: lt.replace(/^ +/, ''), n: L[i].n }); i++;
+      }
+      pendingBlank = false;
+      while (lines.length > 1 && !lines[lines.length - 1].t.trim()) { lines.pop(); pendingBlank = true; }
+      let inFence = false;
+      for (let k = 1; k < lines.length - 1; k++) {
+        if (fenceOpen(lines[k].t) || reFenceClose.test(lines[k].t)) inFence = !inFence;
+        if (!inFence && !lines[k].t.trim()) { loose = true; break; }
+      }
+      items.push({ lines, n: n0 });
+    }
+    const tag = ordered ? 'ol' : 'ul';
+    let h = `<${tag}${ordered && first.start !== 1 ? ` start="${first.start}"` : ''} data-line="${items[0].n}">`;
+    for (const it of items) {
+      let lines = it.lines, task = '';
+      const tm = /^\[([ xX])\](?:[ \t]+|$)/.exec(lines[0].t);
+      if (tm) {
+        task = `<input type="checkbox" class="task" data-line="${it.n}"${tm[1] !== ' ' ? ' checked' : ''}>`;
+        lines = [{ t: lines[0].t.slice(tm[0].length), n: lines[0].n }, ...lines.slice(1)];
+      }
+      let inner = blocks(lines, ctx, !loose).trim();
+      if (task && loose && /^<p[^>]*>/.test(inner)) { inner = inner.replace(/^(<p[^>]*>)/, '$1' + task + ' '); task = ''; }
+      h += `<li${tm ? ' class="task-item"' : ''} data-line="${it.n}">${task ? task + ' ' : ''}${inner}</li>`;
+    }
+    return { html: h + `</${tag}>`, next: i };
+  }
+
+  function blocks(L, ctx, tight) {
+    let out = '', i = 0;
+    while (i < L.length) {
+      const ln = L[i], t = ln.t;
+      if (!t.trim()) { i++; continue; }
+      const attr = ` data-line="${ln.n}"`;
+      let m;
+      if ((m = fenceOpen(t))) {
+        const ind = m[1].length, ch = m[2][0], len = m[2].length, lang = m[3].trim().split(/\s+/)[0] || '';
+        const body = []; i++;
+        while (i < L.length) {
+          const c = reFenceClose.exec(L[i].t);
+          if (c && c[1][0] === ch && c[1].length >= len) { i++; break; }
+          body.push(ind ? L[i].t.replace(new RegExp('^ {0,' + ind + '}'), '') : L[i].t); i++;
+        }
+        out += codeBlock(body.join('\n'), lang, ln.n); continue;
+      }
+      if ((m = reATX.exec(t))) {
+        const txt = (m[2] || '').replace(/(?:^|[ \t]+)#+$/, '').trim();
+        out += heading(m[1].length, txt, ln.n, ctx); i++; continue;
+      }
+      if (reHR.test(t)) { out += `<hr${attr}>`; i++; continue; }
+      if (reQuote.test(t)) {
+        const q = [];
+        while (i < L.length) {
+          const lt = L[i].t;
+          if (reQuote.test(lt)) { q.push({ t: lt.replace(reQuote, ''), n: L[i].n }); i++; }
+          else if (lt.trim() && q.length && q[q.length - 1].t.trim() && !interrupts(lt)) { q.push({ t: lt, n: L[i].n }); i++; }
+          else break;
+        }
+        const am = q.length && /^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/i.exec(q[0].t);
+        if (am) { const k = am[1].toLowerCase(); out += `<div class="callout callout-${k}"${attr}><p class="callout-title">${k[0].toUpperCase() + k.slice(1)}</p>${blocks(q.slice(1), ctx, false)}</div>`; }
+        else out += `<blockquote${attr}>${blocks(q, ctx, false)}</blockquote>`;
+        continue;
+      }
+      if (listInfo(t) && !/^ {4}/.test(t)) { const r = list(L, i, ctx); out += r.html; i = r.next; continue; }
+      if (isTableStart(L, i)) {
+        const head = splitRow(t);
+        const al = splitRow(L[i + 1].t).map(c => { c = c.trim(); const l = c.startsWith(':'), r = c.endsWith(':'); return l && r ? 'center' : r ? 'right' : l ? 'left' : ''; });
+        if (head.length === al.length) {
+          let h = `<table${attr}><thead><tr>${head.map((c, k) => `<th${al[k] ? ` align="${al[k]}"` : ''}>${inline(c.trim(), ctx)}</th>`).join('')}</tr></thead><tbody>`;
+          i += 2;
+          while (i < L.length && L[i].t.trim() && !interrupts(L[i].t)) {
+            const cells = splitRow(L[i].t);
+            h += `<tr data-line="${L[i].n}">${al.map((a, k) => `<td${a ? ` align="${a}"` : ''}>${inline((cells[k] || '').trim(), ctx)}</td>`).join('')}</tr>`;
+            i++;
+          }
+          out += h + '</tbody></table>'; continue;
+        }
+      }
+      if (reHtml.test(t)) {
+        const h = []; while (i < L.length && L[i].t.trim()) { h.push(L[i].t); i++; }
+        out += ctx.opts.html ? h.join('\n') + '\n' : `<p${attr}>${escH(h.join('\n'))}</p>`;
+        continue;
+      }
+      if (/^ {4}/.test(t)) {
+        const b = [];
+        while (i < L.length && (/^ {4}/.test(L[i].t) || !L[i].t.trim())) { b.push(L[i].t.slice(4)); i++; }
+        while (b.length && !b[b.length - 1].trim()) b.pop();
+        out += codeBlock(b.join('\n'), '', ln.n); continue;
+      }
+      const p = [t]; i++; let setext = 0;
+      while (i < L.length) {
+        const lt = L[i].t;
+        if (!lt.trim()) break;
+        if (/^ {0,3}=+[ \t]*$/.test(lt)) { setext = 1; i++; break; }
+        if (/^ {0,3}-+[ \t]*$/.test(lt)) { setext = 2; i++; break; }
+        if (interrupts(lt) || isTableStart(L, i)) break;
+        p.push(lt); i++;
+      }
+      const text = p.map(x => x.replace(/^[ \t]+/, '')).join('\n').replace(/[ \t]+$/, '');
+      if (setext) out += heading(setext, text.replace(/\n/g, ' '), ln.n, ctx);
+      else out += tight ? inline(text, ctx) + '\n' : `<p${attr}>${inline(text, ctx)}</p>`;
+    }
+    return out;
+  }
+
+  function frontMatter(lines) {
+    const rows = [];
+    for (const { t } of lines) { const m = /^([\w.-]+):\s*(.*)$/.exec(t); if (m) rows.push([m[1], m[2].replace(/^(["'])(.*)\1$/, '$2')]); }
+    if (!rows.length) return `<pre class="code" data-line="0"><code>${escH(lines.map(l => l.t).join('\n'))}</code></pre>`;
+    return `<table class="fm" data-line="0"><tbody>${rows.map(([k, v]) => `<tr><th>${escH(k)}</th><td>${escH(v)}</td></tr>`).join('')}</tbody></table>`;
+  }
+
+  function render(src, opts = {}) {
+    const ctx = { opts, refs: new Map(), fns: new Map(), fnOrder: [], fnSeen: new Set(), slugs: new Set(), headings: [] };
+    let L = src.replace(/\r\n?/g, '\n').split('\n').map((t, n) => ({ t: t.replace(/^\t+/, m => '    '.repeat(m.length)), n }));
+    let fm = '';
+    if (L.length > 1 && /^---[ \t]*$/.test(L[0].t)) {
+      let j = 1; while (j < L.length && j < 400 && !/^(---|\.\.\.)[ \t]*$/.test(L[j].t)) j++;
+      if (j < L.length && j < 400 && j > 1) { fm = frontMatter(L.slice(1, j)); L = L.slice(j + 1); }
+    }
+    const keep = []; let fence = null;
+    for (let k = 0; k < L.length; k++) {
+      const t = L[k].t;
+      if (fence) { const c = reFenceClose.exec(t); if (c && c[1][0] === fence[0] && c[1].length >= fence.length) fence = null; keep.push(L[k]); continue; }
+      const f = fenceOpen(t);
+      if (f) { fence = f[2]; keep.push(L[k]); continue; }
+      let m = /^ {0,3}\[\^([^\]\s]+)\]:[ \t]*(.*)$/.exec(t);
+      if (m) {
+        const body = [{ t: m[2], n: L[k].n }];
+        while (k + 1 < L.length && (/^ {4}/.test(L[k + 1].t) || (!L[k + 1].t.trim() && k + 2 < L.length && /^ {4}/.test(L[k + 2].t)))) { k++; body.push({ t: L[k].t.replace(/^ {4}/, ''), n: L[k].n }); }
+        ctx.fns.set(m[1], body); continue;
+      }
+      m = /^ {0,3}\[([^\]]+)\]:[ \t]*<?([^\s>]+)>?(?:[ \t]+(?:"([^"]*)"|'([^']*)'|\(([^)]*)\)))?[ \t]*$/.exec(t);
+      if (m) { const key = norm(m[1]); if (!ctx.refs.has(key)) ctx.refs.set(key, { url: m[2], title: m[3] ?? m[4] ?? m[5] ?? '' }); continue; }
+      keep.push(L[k]);
+    }
+    let html = fm + blocks(keep, ctx, false);
+    if (ctx.fnOrder.length) {
+      html += '<section class="footnotes"><ol>';
+      for (let k = 0; k < ctx.fnOrder.length; k++) {
+        const id = ctx.fnOrder[k], sid = slugId(id);
+        let body = blocks(ctx.fns.get(id), ctx, true).trim();
+        html += `<li id="fn-${sid}">${body} <a href="#fnref-${sid}" class="fnback" aria-label="Back to reference">↩</a></li>`;
+      }
+      html += '</ol></section>';
+    }
+    return { html, headings: ctx.headings };
+  }
+  return { render };
+})();
+
+/* ======================================================================
+   HTML sanitiser (everything shown in the preview passes through here)
+   ====================================================================== */
+const SAN = (() => {
+  const DROP = new Set('SCRIPT STYLE IFRAME OBJECT EMBED LINK META BASE FORM FRAME FRAMESET NOSCRIPT TEMPLATE SVG MATH TEXTAREA SELECT BUTTON APPLET PORTAL'.split(' '));
+  const TAGS = new Set('a abbr article aside b bdi bdo blockquote br caption center cite code col colgroup dd del details dfn div dl dt em figcaption figure footer h1 h2 h3 h4 h5 h6 header hr i img input ins kbd li main mark nav ol p picture pre q rp rt ruby s samp section small source span strong sub summary sup table tbody td tfoot th thead time tr u ul var video audio'.split(' '));
+  const ATTR = new Set('href src alt title id class width height align colspan rowspan start type checked disabled data-line data-lang open lang dir reversed scope controls poster datetime cite'.split(' '));
+  const safeUrl = (u, media) => {
+    const s = u.trim().replace(/[\u0000-\u0020]/g, '').toLowerCase();
+    if (/^(javascript|vbscript|file):/.test(s)) return false;
+    if (s.startsWith('data:')) return media && /^data:(image\/(png|jpe?g|gif|webp|avif)|video\/|audio\/)/.test(s);
+    return true;
+  };
+  function walk(node) {
+    for (const el of Array.from(node.children)) {
+      const tag = el.tagName;
+      if (DROP.has(tag)) { el.remove(); continue; }
+      walk(el);
+      if (!TAGS.has(tag.toLowerCase())) { el.replaceWith(...el.childNodes); continue; }
+      for (const a of Array.from(el.attributes)) {
+        const n = a.name.toLowerCase();
+        if (!ATTR.has(n) || ((n === 'href' || n === 'src' || n === 'poster' || n === 'cite') && !safeUrl(a.value, n !== 'href'))) el.removeAttribute(a.name);
+      }
+      if (tag === 'INPUT' && el.getAttribute('type') !== 'checkbox') { el.remove(); continue; }
+      if (tag === 'A') { const h = el.getAttribute('href') || ''; if (h && !h.startsWith('#')) { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); } }
+      if (tag === 'IMG') el.setAttribute('loading', 'lazy');
+    }
+  }
+  return html => { const t = document.createElement('template'); t.innerHTML = html; walk(t.content); return t.content; };
+})();
+
+/* ======================================================================
+   HTML → Markdown (for pasting from web pages / docs and opening .html)
+   ====================================================================== */
+function htmlToMd(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script,style,meta,link,title,noscript,template,head').forEach(n => n.remove());
+  const escMd = s => s.replace(/([\\`*_[\]])/g, '\\$1').replace(/^(\s*)([#>+-]|\d+\.)(?=\s)/, '$1\\$2');
+  const wrapInline = (inner, mark) => { const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(inner); return m[2] ? m[1] + mark + m[2] + mark + m[3] : inner; };
+  const isBold = el => { const w = el.style && el.style.fontWeight; return w === 'bold' || +w >= 600; };
+  function kids(el, ctx) { let s = ''; for (const c of el.childNodes) s += conv(c, ctx); return s; }
+  function cellText(el) { return kids(el, { inTable: true }).replace(/\n+/g, ' ').replace(/\|/g, '\\|').trim(); }
+  function listMd(el, ctx, ordered) {
+    let n = parseInt(el.getAttribute('start') || '1', 10), out = '';
+    for (const li of el.children) {
+      if (li.tagName !== 'LI') continue;
+      const cb = li.querySelector(':scope > input[type=checkbox]');
+      let marker = ordered ? `${n++}. ` : '- ';
+      if (cb) { marker += cb.checked ? '[x] ' : '[ ] '; cb.remove(); }
+      const blocky = Array.from(li.children).some(c => /^(P|PRE|BLOCKQUOTE|TABLE|H[1-6])$/.test(c.tagName));
+      let body = kids(li, { ...ctx, depth: (ctx.depth || 0) + 1 }).replace(/^\n+|\n+$/g, '').replace(/\n{3,}/g, '\n\n');
+      if (!blocky) body = body.replace(/\n{2,}/g, '\n');
+      const pad = ' '.repeat(ordered ? marker.replace(/\[.\] $/, '').length : 2);
+      out += marker + body.split('\n').map((l, i) => i === 0 || !l ? l : pad + l).join('\n') + '\n';
+    }
+    return '\n\n' + out + '\n';
+  }
+  function conv(node, ctx = {}) {
+    if (node.nodeType === 3) {
+      if (ctx.pre) return node.nodeValue;
+      return escMd(node.nodeValue.replace(/[ \t\r\n\u00a0]+/g, ' '));
+    }
+    if (node.nodeType !== 1) return '';
+    const el = node, tag = el.tagName;
+    const ws = el.style && el.style.whiteSpace;
+    if (ws && /^pre/.test(ws) && !ctx.pre && tag !== 'PRE') return '\n\n```\n' + el.textContent.replace(/\n$/, '') + '\n```\n\n';
+    switch (tag) {
+      case 'H1': case 'H2': case 'H3': case 'H4': case 'H5': case 'H6':
+        return `\n\n${'#'.repeat(+tag[1])} ${kids(el, ctx).replace(/\s+/g, ' ').trim()}\n\n`;
+      case 'P': return '\n\n' + kids(el, ctx).trim() + '\n\n';
+      case 'DIV': case 'SECTION': case 'ARTICLE': case 'MAIN': case 'HEADER': case 'FOOTER': case 'ASIDE': case 'NAV': case 'FIGURE':
+        return '\n' + kids(el, ctx) + '\n';
+      case 'BR': return ctx.inTable ? ' ' : '  \n';
+      case 'HR': return '\n\n---\n\n';
+      case 'STRONG': return wrapInline(kids(el, ctx), '**');
+      case 'B': return isBold(el) || !el.style.fontWeight ? wrapInline(kids(el, ctx), '**') : kids(el, ctx);
+      case 'EM': case 'I': case 'CITE': return wrapInline(kids(el, ctx), '*');
+      case 'DEL': case 'S': case 'STRIKE': return wrapInline(kids(el, ctx), '~~');
+      case 'MARK': return wrapInline(kids(el, ctx), '==');
+      case 'SPAN': {
+        let s = kids(el, ctx);
+        if (isBold(el)) s = wrapInline(s, '**');
+        if (el.style && el.style.fontStyle === 'italic') s = wrapInline(s, '*');
+        if (el.style && /line-through/.test(el.style.textDecoration || '')) s = wrapInline(s, '~~');
+        return s;
+      }
+      case 'CODE': case 'KBD': case 'SAMP': case 'TT': {
+        if (ctx.pre) return el.textContent;
+        const t = el.textContent; const tick = t.includes('`') ? '``' : '`';
+        return tag === 'KBD' ? `<kbd>${esc(t)}</kbd>` : `${tick}${t}${tick}`;
+      }
+      case 'PRE': {
+        const code = el.querySelector('code');
+        const lang = ((code && code.className) || el.className || '').match(/(?:language|lang)-([\w+#-]+)/)?.[1] || '';
+        return '\n\n```' + lang + '\n' + el.textContent.replace(/\n$/, '') + '\n```\n\n';
+      }
+      case 'A': {
+        const href = el.getAttribute('href') || '';
+        const text = kids(el, ctx).trim();
+        if (!href || /^javascript:/i.test(href)) return text;
+        if (text === href) return `<${href}>`;
+        return `[${text || href}](${href.replace(/ /g, '%20').replace(/\)/g, '%29')})`;
+      }
+      case 'IMG': { const src = el.getAttribute('src') || ''; return src && !src.startsWith('data:') ? `![${(el.getAttribute('alt') || '').replace(/[[\]]/g, '')}](${src})` : ''; }
+      case 'BLOCKQUOTE': { const inner = kids(el, ctx).trim().replace(/\n{3,}/g, '\n\n'); return '\n\n' + inner.split('\n').map(l => l ? '> ' + l : '>').join('\n') + '\n\n'; }
+      case 'UL': return listMd(el, ctx, false);
+      case 'OL': return listMd(el, ctx, true);
+      case 'LI': return kids(el, ctx);
+      case 'DL': return '\n\n' + kids(el, ctx) + '\n\n';
+      case 'DT': return '\n**' + kids(el, ctx).trim() + '**\n';
+      case 'DD': return ': ' + kids(el, ctx).trim() + '\n';
+      case 'TABLE': {
+        const rows = Array.from(el.querySelectorAll('tr')).filter(r => r.closest('table') === el);
+        if (!rows.length) return '';
+        const grid = rows.map(r => Array.from(r.children).filter(c => /^T[HD]$/.test(c.tagName)).map(cellText));
+        const w = Math.max(...grid.map(r => r.length));
+        const line = r => '| ' + Array.from({ length: w }, (_, k) => r[k] || '').join(' | ') + ' |';
+        return '\n\n' + [line(grid[0]), '|' + ' --- |'.repeat(w), ...grid.slice(1).map(line)].join('\n') + '\n\n';
+      }
+      case 'INPUT': return el.type === 'checkbox' ? (el.checked ? '[x] ' : '[ ] ') : '';
+      case 'SUP': return el.textContent.trim() ? `<sup>${esc(el.textContent)}</sup>` : '';
+      case 'SUB': return el.textContent.trim() ? `<sub>${esc(el.textContent)}</sub>` : '';
+      default: return kids(el, ctx);
+    }
+  }
+  return conv(doc.body).replace(/[ \t]+\n/g, m => m.startsWith('  ') && m.length === 3 ? m : '\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
+/* ======================================================================
+   App state & elements
+   ====================================================================== */
+const ta = $('#ta'), hl = $('#hl'), mk = $('#mk'), edS = $('#edScroll'), pvS = $('#pvScroll'), pv = $('#preview');
+const S = {
+  name: 'untitled.md', saved: '', handle: null, view: 'split', outline: true,
+  sync: true, html: true, breaks: false, convertPaste: true, spell: true, edSize: 14.5, mdSize: 17,
+  headings: [], curLine: 0
+};
+const HL_LIMIT = 150000;
+const inViewer = () => !!(window.claude && typeof window.claude.use === 'function');
+
+/* ======================================================================
+   Source highlighting overlay
+   ====================================================================== */
+const sp = (c, s) => s ? `<span class="s-${c}">${esc(s)}</span>` : '';
+const SRC_INLINE = /(`+)[^`]+?\1|(!?\[[^\]\n]*\]\([^)\n]*\))|(\[\^[^\]\s]+\])|(\*\*[^*\s](?:[^*\n]*?[^*\s])?\*\*|__[^_\s](?:[^_\n]*?[^_\s])?__)|((?:^|(?<=[^*\w]))\*[^*\s](?:[^*\n]*?[^*\s])?\*(?!\*)|(?:^|(?<=\W))_[^_\s](?:[^_\n]*?[^_\s])?_(?!\w))|(~~[^~\n]+~~)|(<\/?[A-Za-z][^>\n]*>|&[#\w]+;)|(https?:\/\/[^\s<>)\]]+)|(\|)/g;
+function srcInline(s) {
+  if (!s) return '';
+  let out = '', last = 0, m;
+  SRC_INLINE.lastIndex = 0;
+  while ((m = SRC_INLINE.exec(s))) {
+    if (!m[0]) { SRC_INLINE.lastIndex++; continue; }
+    out += esc(s.slice(last, m.index)); last = SRC_INLINE.lastIndex;
+    const t = m[0];
+    if (m[1]) out += sp('code', t);
+    else if (m[2]) { const p = /^(!?\[)([^\]]*)(\]\()([^)]*)(\))$/.exec(t); out += p ? sp('mk', p[1]) + sp('link', p[2]) + sp('mk', p[3]) + sp('url', p[4]) + sp('mk', p[5]) : esc(t); }
+    else if (m[3]) out += sp('fn', t);
+    else if (m[4]) out += sp('mk', t.slice(0, 2)) + `<span class="s-strong">${esc(t.slice(2, -2))}</span>` + sp('mk', t.slice(-2));
+    else if (m[5]) out += sp('mk', t[0]) + sp('em', t.slice(1, -1)) + sp('mk', t.slice(-1));
+    else if (m[6]) out += sp('mk', '~~') + sp('del', t.slice(2, -2)) + sp('mk', '~~');
+    else if (m[7]) out += sp('tag', t);
+    else if (m[8]) out += sp('url', t);
+    else out += sp('pipe', t);
+  }
+  return out + esc(s.slice(last));
+}
+function hlSource(text, plain) {
+  const lines = text.split('\n'), out = new Array(lines.length);
+  let fence = null, fm = /^---[ \t]*$/.test(lines[0] || '') && lines.length > 2 ? 1 : 0;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    let h;
+    if (plain) h = esc(l);
+    else if (fm === 1) { if (i > 0 && /^(---|\.\.\.)[ \t]*$/.test(l)) { fm = 2; h = sp('mk', l); } else h = i === 0 ? sp('mk', l) : sp('fm', l); }
+    else if (fence) {
+      const c = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(l);
+      if (c && c[1][0] === fence[0] && c[1].length >= fence.length) { fence = null; h = sp('mk', l); } else h = sp('code', l);
+    } else {
+      let m;
+      if ((m = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(l)) && !(m[2][0] === '`' && m[3].includes('`'))) { fence = m[2]; h = esc(m[1]) + sp('mk', m[2]) + sp('lang', m[3]); }
+      else if ((m = /^( {0,3}#{1,6})([ \t].*|$)/.exec(l))) h = sp('mk', m[1]) + `<span class="s-h">${srcInline(m[2])}</span>`;
+      else if (/^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,}|=+[ \t]*)$/.test(l)) h = sp('mk', l);
+      else if ((m = /^ {0,3}(\[\^?[^\]]+\]:)(.*)$/.exec(l))) h = sp('fn', m[1]) + sp('url', m[2]);
+      else {
+        m = /^((?:[ \t]*>)*[ \t]?)((?:[ \t]*)(?:[*+-]|\d{1,9}[.)])(?:[ \t]+|$))?(\[[ xX]\](?:[ \t]|$))?/.exec(l);
+        const q = m[1], liM = m[2] || '', tk = m[3] || '';
+        const quoted = q.includes('>');
+        h = (quoted ? sp('qmk', q) : esc(q));
+        if (liM) { const ws = /^[ \t]*/.exec(liM)[0]; h += esc(ws) + sp('li', liM.slice(ws.length)); }
+        h += sp('task', tk);
+        const rest = l.slice(m[0].length);
+        h += quoted ? `<span class="s-quote">${srcInline(rest)}</span>` : srcInline(rest);
+      }
+    }
+    out[i] = `<div>${h || '\u200b'}</div>`;
+  }
+  return out.join('');
+}
+let lineEls = hl.children;
+function renderSource() {
+  const t = ta.value, big = t.length > HL_LIMIT;
+  ta.classList.toggle('plain', big); hl.classList.toggle('ghost', big);
+  hl.innerHTML = hlSource(t, big);
+  lineEls = hl.children;
+  S.curLine = -1; markCurLine();
+  sizeEditor();
+  if (F.open) renderMarks();
+}
+function sizeEditor() { ta.style.height = hl.offsetHeight + 'px'; }
+const renderSourceSoon = (() => { let raf = 0; return () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderSource(); ensureCaretVisible(); }); }; })();
+const renderSourceLazy = debounce(() => { renderSource(); }, 120);
+
+function caretLine(pos = ta.selectionStart) { const t = ta.value; let n = 0, i = -1; while ((i = t.indexOf('\n', i + 1)) !== -1 && i < pos) n++; return n; }
+function markCurLine() {
+  const n = caretLine();
+  if (n !== S.curLine) { lineEls[S.curLine]?.classList.remove('cur'); lineEls[n]?.classList.add('cur'); S.curLine = n; }
+  const t = ta.value, s = ta.selectionStart, ls = t.lastIndexOf('\n', s - 1) + 1;
+  let pos = `Ln ${fmtN(n + 1)}, Col ${fmtN(s - ls + 1)}`;
+  if (ta.selectionEnd > s) { const w = countWords(t.slice(s, ta.selectionEnd)); pos += ` · ${fmtN(w)} word${w === 1 ? '' : 's'} selected`; }
+  $('#stPos').textContent = pos;
+}
+function ensureCaretVisible() {
+  if (document.activeElement !== ta) return;
+  const el = lineEls[S.curLine]; if (!el) return;
+  const t = ta.value, s = ta.selectionEnd, ls = t.lastIndexOf('\n', s - 1) + 1;
+  let le = t.indexOf('\n', s); if (le < 0) le = t.length;
+  const frac = le > ls ? (s - ls) / (le - ls) : 0;
+  const lh = parseFloat(getComputedStyle(hl).lineHeight) || 24;
+  const y = el.offsetTop + Math.max(0, Math.min(el.offsetHeight - lh, frac * el.offsetHeight - lh / 2));
+  if (y < edS.scrollTop + 8) edS.scrollTop = y - 24;
+  else if (y + lh > edS.scrollTop + edS.clientHeight - 8) edS.scrollTop = y + lh - edS.clientHeight + 40;
+}
+function lineAtY(y) { let lo = 0, hi = lineEls.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (lineEls[mid].offsetTop <= y) lo = mid; else hi = mid - 1; } return Math.max(0, lo); }
+function goToLine(n, opts = {}) {
+  const t = ta.value; let pos = 0;
+  for (let k = 0; k < n; k++) { const j = t.indexOf('\n', pos); if (j < 0) break; pos = j + 1; }
+  if (opts.focus !== false) ta.focus({ preventScroll: true });
+  ta.setSelectionRange(pos, pos);
+  markCurLine();
+  const el = lineEls[n];
+  if (el) { edS.scrollTop = Math.max(0, el.offsetTop - (opts.top ? 16 : edS.clientHeight / 3)); }
+}
+
+/* ======================================================================
+   Preview, outline and scroll sync
+   ====================================================================== */
+let pvBlocks = null;
+function renderPreview() {
+  const r = MD.render(ta.value, { html: S.html, breaks: S.breaks });
+  pv.classList.toggle('big', ta.value.length > 100000);
+  pv.replaceChildren(SAN(r.html));
+  for (const pre of pv.querySelectorAll('pre')) {
+    const b = document.createElement('button'); b.className = 'cbtn'; b.type = 'button'; b.textContent = 'Copy';
+    b.onclick = () => copyText(pre.querySelector('code')?.textContent ?? pre.textContent, 'Code copied', b);
+    pre.append(b);
+  }
+  S.headings = r.headings;
+  pvBlocks = null;
+  renderOutline();
+  $('#pvInfo').textContent = S.headings.length ? `${S.headings.length} section${S.headings.length === 1 ? '' : 's'}` : 'Preview';
+}
+const renderPreviewSoon = debounce(renderPreview, () => Math.min(600, 90 + ta.value.length / 3000));
+
+function collectBlocks() {
+  const base = pvS.getBoundingClientRect().top - pvS.scrollTop;
+  const list = [];
+  let lastLine = -1;
+  for (const el of pv.querySelectorAll('[data-line]')) {
+    if (el.tagName === 'INPUT') continue;
+    const line = +el.dataset.line;
+    if (line <= lastLine) continue;
+    list.push({ line, top: el.getBoundingClientRect().top - base });
+    lastLine = line;
+  }
+  return list;
+}
+function interp(list, key, val, outKey) {
+  if (!list.length) return 0;
+  let lo = 0, hi = list.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (list[mid][key] <= val) lo = mid; else hi = mid - 1; }
+  const a = list[lo], b = list[lo + 1];
+  if (!b || a[key] > val) return a[outKey];
+  return a[outKey] + (b[outKey] - a[outKey]) * ((val - a[key]) / Math.max(1e-6, b[key] - a[key]));
+}
+let ignoreEd = 0, ignorePv = 0;
+function syncFromEditor() {
+  if (!S.sync || S.view !== 'split' || Date.now() < ignoreEd || !lineEls.length) return;
+  if (!pvBlocks) pvBlocks = collectBlocks();
+  const y = edS.scrollTop;
+  let target;
+  if (y <= 2) target = 0;
+  else if (y + edS.clientHeight >= edS.scrollHeight - 2) target = pvS.scrollHeight;
+  else {
+    const n = lineAtY(y), el = lineEls[n];
+    const pos = n + Math.min(1, Math.max(0, (y - el.offsetTop) / Math.max(1, el.offsetHeight)));
+    target = interp(pvBlocks, 'line', pos, 'top') - 12;
+  }
+  ignorePv = Date.now() + 120; pvS.scrollTop = target;
+}
+function syncFromPreview() {
+  if (!S.sync || S.view !== 'split' || Date.now() < ignorePv || !lineEls.length) return;
+  if (!pvBlocks) pvBlocks = collectBlocks();
+  const y = pvS.scrollTop;
+  let target;
+  if (y <= 2) target = 0;
+  else if (y + pvS.clientHeight >= pvS.scrollHeight - 2) target = edS.scrollHeight;
+  else {
+    const pos = interp(pvBlocks, 'top', y + 12, 'line');
+    const n = Math.floor(pos), el = lineEls[Math.min(n, lineEls.length - 1)];
+    target = el.offsetTop + (pos - n) * el.offsetHeight;
+  }
+  ignoreEd = Date.now() + 120; edS.scrollTop = target;
+}
+function renderOutline() {
+  const box = $('#olist');
+  if (!S.headings.length) { box.innerHTML = '<div class="empty">Headings you add with <code>#</code> appear here.</div>'; return; }
+  const min = Math.min(...S.headings.map(h => h.level));
+  box.innerHTML = S.headings.map((h, i) => `<button data-h="${i}" class="l${h.level - min + 1}" style="padding-left:${8 + (h.level - min) * 14}px" title="${esc(h.text)}">${esc(h.text)}</button>`).join('');
+  markOutline();
+}
+function markOutline() {
+  if (!S.headings.length) return;
+  let line;
+  if (S.view === 'preview') { if (!pvBlocks) pvBlocks = collectBlocks(); line = interp(pvBlocks, 'top', pvS.scrollTop + 40, 'line'); }
+  else line = lineAtY(edS.scrollTop + 40);
+  let cur = -1;
+  S.headings.forEach((h, i) => { if (h.line <= line) cur = i; });
+  $$('#olist button').forEach((b, i) => b.classList.toggle('on', i === cur));
+}
+function jumpToHeading(i) {
+  const h = S.headings[i]; if (!h) return;
+  if (S.view !== 'preview') goToLine(h.line, { top: true, focus: S.view === 'edit' });
+  const el = document.getElementById(h.id);
+  if (el && S.view !== 'edit') { ignorePv = Date.now() + 150; ignoreEd = Date.now() + 150; pvS.scrollTop = el.getBoundingClientRect().top - pvS.getBoundingClientRect().top + pvS.scrollTop - 12; }
+  if (innerWidth <= 900) setOutline(false);
+}
+
+/* ======================================================================
+   Status, persistence, title
+   ====================================================================== */
+const countWords = t => (t.match(/[\p{L}\p{N}][\p{L}\p{N}'’_-]*/gu) || []).length;
+const updateStats = debounce(() => {
+  const t = ta.value, w = countWords(t);
+  $('#stWords').textContent = `${fmtN(w)} word${w === 1 ? '' : 's'}`;
+  $('#stChars').textContent = `${fmtN(t.length)} characters`;
+  $('#stRead').textContent = `${Math.max(1, Math.round(w / 230))} min read`;
+}, 250);
+function updateTitle() {
+  const dirty = ta.value !== S.saved;
+  $('#fnameText').textContent = S.name;
+  $('#dirtyDot').hidden = !dirty;
+  const st = $('#stSave'); st.textContent = dirty ? 'Unsaved changes' : 'Saved'; st.className = dirty ? 'warn' : 'ok';
+  document.title = (dirty ? '• ' : '') + S.name + ' — Markdown Workbench';
+}
+const autosave = debounce(() => {
+  if (ta.value.length < 3e6) store.set('mdwb.session', JSON.stringify({ name: S.name, text: ta.value, saved: S.saved === ta.value }));
+}, 600);
+function savePrefs() {
+  store.set('mdwb.prefs', JSON.stringify({ view: S.view, outline: S.outline, sync: S.sync, html: S.html, breaks: S.breaks, convertPaste: S.convertPaste, spell: S.spell, edSize: S.edSize, mdSize: S.mdSize }));
+}
+
+function onEdit() {
+  if (ta.value.length > HL_LIMIT) renderSourceLazy(); else renderSourceSoon();
+  if (ta.value.length > HL_LIMIT) { sizeEditor(); }
+  renderPreviewSoon();
+  updateStats(); updateTitle(); autosave();
+  if (F.open) refreshFind(false);
+}
+function setText(text, name, opts = {}) {
+  ta.value = text;
+  if (name) S.name = name;
+  S.saved = opts.dirty ? '' : text;
+  S.handle = opts.handle || null;
+  renderSource(); renderPreview(); updateStats.now(); updateTitle(); autosave();
+  edS.scrollTop = 0; pvS.scrollTop = 0;
+  ta.setSelectionRange(0, 0);
+  S.curLine = -1; markCurLine();
+  if (F.open) refreshFind(false);
+}
+
+/* ======================================================================
+   Editing primitives (all go through insertText so native undo works)
+   ====================================================================== */
+function replaceRange(s, e, text, selS, selE) {
+  ta.focus({ preventScroll: true });
+  ta.setSelectionRange(s, e);
+  let ok = false;
+  if (s === e && text === '') ok = true;
+  else { try { ok = text === '' ? document.execCommand('delete') : document.execCommand('insertText', false, text); } catch { ok = false; } }
+  if (!ok) { ta.setRangeText(text, s, e, 'end'); ta.dispatchEvent(new Event('input')); }
+  if (selS !== undefined) ta.setSelectionRange(selS, selE ?? selS);
+  markCurLine();
+}
+function lineRange() {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const ls = v.lastIndexOf('\n', s - 1) + 1;
+  let le = v.indexOf('\n', e > s && v[e - 1] === '\n' ? e - 1 : e); if (le < 0) le = v.length;
+  return { v, s, e, ls, le, lines: v.slice(ls, le).split('\n') };
+}
+function mapLines(fn) {
+  const r = lineRange();
+  const out = r.lines.map(fn).join('\n');
+  if (out === r.v.slice(r.ls, r.le)) return;
+  if (r.s === r.e && r.lines.length === 1) replaceRange(r.ls, r.le, out, r.ls + out.length);
+  else replaceRange(r.ls, r.le, out, r.ls, r.ls + out.length);
+}
+function wrap(mark, end = mark, placeholder = 'text') {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd, sel = v.slice(s, e);
+  const L = mark.length, R = end.length;
+  if (v.slice(s - L, s) === mark && v.slice(e, e + R) === end) { replaceRange(s - L, e + R, sel, s - L, e - L); return; }
+  if (sel.length >= L + R && sel.startsWith(mark) && sel.endsWith(end)) { const inner = sel.slice(L, sel.length - R); replaceRange(s, e, inner, s, s + inner.length); return; }
+  const lead = /^\s*/.exec(sel)[0], trail = /\s*$/.exec(sel.slice(lead.length))[0], core = sel.slice(lead.length, sel.length - trail.length);
+  if (!core) { const t = mark + placeholder + end; replaceRange(s, e, t, s + L, s + L + placeholder.length); return; }
+  replaceRange(s, e, lead + mark + core + end + trail, s + lead.length + L, s + lead.length + L + core.length);
+}
+const LIST_RE = /^(\s*)(?:[-*+] \[[ xX]\] |[-*+] |\d+[.)] )/;
+function togglePrefix(kind) {
+  const r = lineRange();
+  const test = { quote: /^\s*> ?/, ul: /^\s*[-*+] (?!\[[ xX]\] )/, task: /^\s*[-*+] \[[ xX]\] /, ol: /^\s*\d+[.)] / }[kind];
+  const non = r.lines.filter(l => l.trim());
+  const all = non.length > 0 && non.every(l => test.test(l));
+  let k = 0;
+  mapLines(l => {
+    if (!l.trim() && r.lines.length > 1) return l;
+    if (all) return kind === 'quote' ? l.replace(/^(\s*)> ?/, '$1') : l.replace(LIST_RE, '$1');
+    if (kind === 'quote') return '> ' + l;
+    const base = l.replace(LIST_RE, '$1'), ind = /^\s*/.exec(base)[0];
+    const p = kind === 'ul' ? '- ' : kind === 'task' ? '- [ ] ' : `${++k}. `;
+    return ind + p + base.slice(ind.length);
+  });
+}
+function setHeading(level) {
+  const r = lineRange();
+  const cur = (/^(#{1,6})\s/.exec(r.lines[0]) || [, ''])[1].length;
+  const target = level === 'cycle' ? (cur + 1) % 7 : level === cur ? 0 : level;
+  mapLines(l => { const body = l.replace(/^#{1,6}\s+/, ''); return target ? '#'.repeat(target) + ' ' + body : body; });
+}
+function insertBlock(text, selectFrom, selectLen) {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const before = v.slice(0, s), after = v.slice(e);
+  const pre = !before || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
+  const post = !after ? '\n' : after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n';
+  const ins = pre + text + post;
+  const at = s + pre.length;
+  replaceRange(s, e, ins, at + (selectFrom ?? text.length), at + (selectFrom ?? text.length) + (selectLen ?? 0));
+}
+function cmdLink(image) {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd, sel = v.slice(s, e).trim();
+  const bang = image ? '!' : '';
+  if (/^(https?:\/\/|www\.)\S+$/.test(sel)) { const t = `${bang}[](${sel})`; replaceRange(s, e, t, s + bang.length + 1); return; }
+  const text = sel || (image ? 'description' : 'link text'), url = 'https://';
+  const t = `${bang}[${text}](${url})`;
+  const at = s + bang.length + text.length + 3;
+  replaceRange(s, e, t, sel ? at : s + bang.length + 1, sel ? at + url.length : s + bang.length + 1 + text.length);
+}
+function cmdCode() {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd, sel = v.slice(s, e);
+  if (sel.includes('\n')) return cmdCodeBlock();
+  wrap(sel.includes('`') ? '`` ' : '`', sel.includes('`') ? ' ``' : '`', 'code');
+}
+function cmdCodeBlock() {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd, sel = v.slice(s, e);
+  if (sel) { insertBlock('```\n' + sel.replace(/\n$/, '') + '\n```', 3, 0); return; }
+  insertBlock('```\n\n```', 3, 0);
+}
+function tableMd(rows, cols) {
+  const head = Array.from({ length: cols }, (_, i) => `Column ${i + 1}`);
+  const w = head.map(h => h.length);
+  const line = cells => '| ' + cells.map((c, i) => c.padEnd(w[i])).join(' | ') + ' |';
+  return [line(head), '| ' + w.map(n => '-'.repeat(n)).join(' | ') + ' |', ...Array.from({ length: rows }, () => line(head.map(() => '')))].join('\n');
+}
+async function cmdTable() {
+  const r = await form({ title: 'Insert table', fields: [{ id: 'rows', label: 'Body rows', value: '3', type: 'number' }, { id: 'cols', label: 'Columns', value: '3', type: 'number' }], ok: 'Insert' });
+  if (!r) return;
+  const rows = Math.max(1, Math.min(200, parseInt(r.rows, 10) || 3)), cols = Math.max(1, Math.min(20, parseInt(r.cols, 10) || 3));
+  insertBlock(tableMd(rows, cols), 2, 8);
+}
+function cmdHr() { insertBlock('---'); }
+function headingMenu(anchor) {
+  const rc = anchor.getBoundingClientRect();
+  openMenu([
+    ...[1, 2, 3, 4, 5, 6].map(n => ({ label: `Heading ${n}`, kbd: `Ctrl+Alt+${n}`, run: () => setHeading(n) })),
+    '-',
+    { label: 'Normal text', kbd: 'Ctrl+Alt+0', run: () => setHeading(0) }
+  ], rc.left, rc.bottom + 4);
+}
+function runCmd(c, el) {
+  switch (c) {
+    case 'bold': return wrap('**', '**', 'bold text');
+    case 'italic': return wrap('*', '*', 'italic text');
+    case 'strike': return wrap('~~', '~~', 'text');
+    case 'code': return cmdCode();
+    case 'heading': return headingMenu(el);
+    case 'link': return cmdLink(false);
+    case 'image': return cmdLink(true);
+    case 'ul': case 'ol': case 'task': case 'quote': return togglePrefix(c);
+    case 'table': return cmdTable();
+    case 'codeblock': return cmdCodeBlock();
+    case 'hr': return cmdHr();
+    case 'find': return openFind();
+  }
+}
+
+/* ---------- smart keys ---------- */
+function onEnter() {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  if (s !== e) return false;
+  const ls = v.lastIndexOf('\n', s - 1) + 1;
+  let le = v.indexOf('\n', s); if (le < 0) le = v.length;
+  const line = v.slice(ls, le);
+  // inside a fenced code block? keep indentation only
+  const before = v.slice(0, ls);
+  const fences = (before.match(/^ {0,3}(```|~~~)/gm) || []).length;
+  const indent = /^[ \t]*/.exec(line)[0];
+  if (fences % 2 === 1) { replaceRange(s, s, '\n' + indent.slice(0, s - ls)); return true; }
+  const m = /^((?:[ \t]*>[ \t]?)*)([ \t]*)([-*+]|(\d{1,9})([.)]))([ \t]+)(\[[ xX]\][ \t]+)?/.exec(line);
+  if (m && s - ls >= m[0].length - (m[7] ? 0 : 0)) {
+    const content = line.slice(m[0].length);
+    if (!content.trim() && le === s) { replaceRange(ls, le, m[1].replace(/[ \t]+$/, '') ? m[1] : '', ls + (m[1].replace(/[ \t]+$/, '') ? m[1].length : 0)); return true; }
+    const marker = m[4] ? `${+m[4] + 1}${m[5]}` : m[3];
+    const ins = '\n' + m[1] + m[2] + marker + m[6] + (m[7] ? '[ ] ' : '');
+    replaceRange(s, s, ins);
+    if (m[4]) renumberFrom(ta.selectionStart);
+    return true;
+  }
+  const q = /^((?:[ \t]*>[ \t]?)+)(.*)$/.exec(line);
+  if (q) {
+    if (!q[2].trim() && le === s) { replaceRange(ls, le, ''); return true; }
+    replaceRange(s, s, '\n' + q[1]); return true;
+  }
+  if (indent && s - ls >= indent.length) { replaceRange(s, s, '\n' + indent); return true; }
+  return false;
+}
+function renumberFrom(pos) {
+  // after inserting a numbered item, bump the numbers of following siblings so the list stays sequential
+  const v = ta.value;
+  const ls = v.lastIndexOf('\n', pos - 1) + 1;
+  const lines = v.slice(ls).split('\n');
+  const head = /^(\s*)(\d+)([.)]) /.exec(lines[0]); if (!head) return;
+  let n = +head[2], changed = false;
+  const out = [lines[0]];
+  let k = 1;
+  for (; k < lines.length; k++) {
+    const l = lines[k];
+    const m = /^(\s*)(\d+)([.)]) /.exec(l);
+    if (m && m[1] === head[1]) { n++; if (+m[2] !== n) { changed = true; out.push(m[1] + n + m[3] + ' ' + l.slice(m[0].length)); } else out.push(l); continue; }
+    if (!l.trim() || /^\s/.test(l) && l.length - l.trimStart().length > head[1].length) { out.push(l); continue; }
+    break;
+  }
+  if (!changed) return;
+  const end = ls + lines.slice(0, k).join('\n').length;
+  const sel = ta.selectionStart;
+  replaceRange(ls, end, out.join('\n'), sel);
+}
+function onTab(shift) {
+  const r = lineRange();
+  const multi = r.lines.length > 1 || r.s !== r.e;
+  const isList = LIST_RE.test(r.lines[0]);
+  if (!multi && !isList) {
+    if (shift) return true;
+    replaceRange(r.s, r.e, '    '); return true;
+  }
+  if (shift) { mapLines(l => l.replace(/^( {1,4}|\t)/, '')); return true; }
+  let unit = '  ';
+  if (!multi && isList) {
+    const before = r.v.slice(0, r.ls).split('\n'); before.pop();
+    const curInd = /^\s*/.exec(r.lines[0])[0].length;
+    for (let k = before.length - 1; k >= 0; k--) {
+      const b = before[k]; if (!b.trim()) continue;
+      const m = /^(\s*)([-*+]|\d+[.)])(\s+)/.exec(b);
+      if (m && m[1].length <= curInd) { const target = m[1].length + m[2].length + m[3].length; unit = ' '.repeat(Math.max(2, target - curInd)); }
+      break;
+    }
+  }
+  mapLines(l => l.trim() || !multi ? unit + l : l);
+  return true;
+}
+function moveLines(dir) {
+  const r = lineRange(), v = r.v;
+  if (dir < 0) {
+    if (r.ls === 0) return;
+    const pls = v.lastIndexOf('\n', r.ls - 2) + 1;
+    const prev = v.slice(pls, r.ls - 1), block = v.slice(r.ls, r.le);
+    replaceRange(pls, r.le, block + '\n' + prev, pls + (r.s - r.ls), pls + (r.e - r.ls));
+  } else {
+    if (r.le >= v.length) return;
+    let nle = v.indexOf('\n', r.le + 1); if (nle < 0) nle = v.length;
+    const next = v.slice(r.le + 1, nle), block = v.slice(r.ls, r.le);
+    const shift = next.length + 1;
+    replaceRange(r.ls, nle, next + '\n' + block, r.s + shift, r.e + shift);
+  }
+}
+function duplicateLines() { const r = lineRange(), block = r.v.slice(r.ls, r.le); replaceRange(r.le, r.le, '\n' + block, r.s + block.length + 1, r.e + block.length + 1); }
+
+/* ---------- paste ---------- */
+function onPaste(e) {
+  const cd = e.clipboardData; if (!cd) return;
+  const plain = cd.getData('text/plain'), html = cd.getData('text/html');
+  const s = ta.selectionStart, end = ta.selectionEnd, sel = ta.value.slice(s, end);
+  if (sel && /^(https?:\/\/|mailto:)\S+$/.test(plain.trim()) && !sel.includes('\n')) {
+    e.preventDefault(); replaceRange(s, end, `[${sel}](${plain.trim()})`); toast('Linked the selected text'); return;
+  }
+  if (S.convertPaste && html && /<(p|h[1-6]|ul|ol|li|table|a|strong|b|em|i|img|blockquote|pre|br|div)[\s>]/i.test(html) && !/vscode|monaco|data-ccp-props|class="?hljs/i.test(html)) {
+    const md = htmlToMd(html);
+    if (md.trim() && md.trim() !== plain.trim()) { e.preventDefault(); replaceRange(s, end, md.replace(/\n$/, '')); toast('Converted formatted text to Markdown. Ctrl+Shift+V pastes plain text.'); }
+  }
+}
+
+/* ======================================================================
+   Find & replace
+   ====================================================================== */
+const F = { open: false, list: [], idx: -1, cs: false, word: false, re: false };
+function findRegex(global = true) {
+  const q = $('#fIn').value; if (!q) return null;
+  let src = F.re ? q : q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (F.word) src = `\\b(?:${src})\\b`;
+  try { return new RegExp(src, (global ? 'g' : '') + (F.cs ? '' : 'i') + 'mu'); } catch { return undefined; }
+}
+function refreshFind(move) {
+  const re = findRegex();
+  $('#fIn').classList.toggle('bad', re === undefined);
+  F.list = [];
+  if (re) { const t = ta.value; let m; while ((m = re.exec(t)) && F.list.length < 50000) { if (!m[0].length) { re.lastIndex++; continue; } F.list.push([m.index, m.index + m[0].length]); } }
+  if (move) { const pos = ta.selectionStart; F.idx = F.list.findIndex(x => x[0] >= pos); if (F.idx < 0) F.idx = F.list.length ? 0 : -1; }
+  else if (F.idx >= F.list.length) F.idx = F.list.length - 1;
+  updateFindCount(); renderMarks();
+}
+function updateFindCount() { $('#fCount').textContent = $('#fIn').value ? (F.list.length ? `${F.idx + 1} of ${fmtN(F.list.length)}` : 'No results') : ''; }
+function renderMarks() {
+  if (!F.open || !F.list.length) { mk.innerHTML = ''; return; }
+  const t = ta.value, lines = t.split('\n');
+  let pos = 0, mi = 0, out = '';
+  for (const l of lines) {
+    const end = pos + l.length;
+    let h = '', p = pos;
+    while (mi < F.list.length && F.list[mi][0] < end + 1) {
+      const [a, b] = F.list[mi];
+      if (a >= end && !(a === end && b === end)) break;
+      const sa = Math.max(a, pos), sb = Math.min(b, end);
+      h += esc(t.slice(p, sa)) + `<mark${mi === F.idx ? ' class="cur"' : ''}>${esc(t.slice(sa, sb))}</mark>`;
+      p = sb;
+      if (b <= end) mi++; else break;
+    }
+    h += esc(t.slice(p, end));
+    out += `<div>${h || '\u200b'}</div>`;
+    pos = end + 1;
+  }
+  mk.innerHTML = out;
+}
+function findStep(dir) {
+  if (!F.list.length) return;
+  F.idx = (F.idx + dir + F.list.length) % F.list.length;
+  const [a, b] = F.list[F.idx];
+  ta.setSelectionRange(a, b);
+  markCurLine();
+  const el = lineEls[S.curLine]; if (el) edS.scrollTop = el.offsetTop - edS.clientHeight / 3;
+  updateFindCount(); renderMarks();
+}
+function openFind() {
+  F.open = true; $('#findBar').hidden = false;
+  const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+  if (sel && !sel.includes('\n')) $('#fIn').value = sel;
+  $('#fIn').focus(); $('#fIn').select();
+  refreshFind(true);
+}
+function closeFind() { F.open = false; $('#findBar').hidden = true; mk.innerHTML = ''; ta.focus(); }
+function replaceOne() {
+  const re = findRegex(false); if (!re || !F.list.length) return;
+  let [a, b] = F.list[Math.max(0, F.idx)];
+  if (ta.selectionStart !== a || ta.selectionEnd !== b) { findStep(0); return; }
+  const rep = ta.value.slice(a, b).replace(re, $('#rIn').value);
+  replaceRange(a, b, rep, a + rep.length);
+  refreshFind(true);
+  if (F.list.length) findStep(0);
+}
+function replaceAll() {
+  const re = findRegex(true); if (!re || !F.list.length) return;
+  const n = F.list.length;
+  const out = ta.value.replace(re, $('#rIn').value);
+  replaceRange(0, ta.value.length, out, 0);
+  refreshFind(false);
+  toast(`Replaced ${fmtN(n)} match${n === 1 ? '' : 'es'}`);
+}
+
+/* ======================================================================
+   Document tools
+   ====================================================================== */
+function outsideFences(fn) {
+  const lines = ta.value.split('\n'); let fence = null;
+  const mask = lines.map(l => {
+    const f = /^ {0,3}(`{3,}|~{3,})/.exec(l);
+    if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length && /^ {0,3}[`~]+\s*$/.test(l)) fence = null; return false; }
+    if (f) { fence = f[1]; return false; }
+    return true;
+  });
+  return fn(lines, mask);
+}
+function applyWhole(text, msg) {
+  if (text === ta.value) { toast('Nothing to change'); return; }
+  const pos = Math.min(ta.selectionStart, text.length), top = edS.scrollTop;
+  replaceRange(0, ta.value.length, text, pos);
+  edS.scrollTop = top;
+  if (msg) toast(msg);
+}
+const cellW = s => [...s].reduce((n, ch) => n + (/[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]|\p{Extended_Pictographic}/u.test(ch) ? 2 : 1), 0);
+function formatTables() {
+  let count = 0;
+  const out = outsideFences((lines, ok) => {
+    const res = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (ok[i] && ok[i + 1] && lines[i].includes('|') && i + 1 < lines.length && /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/.test(lines[i + 1]) && lines[i + 1].includes('-')) {
+        const split = l => { let t = l.trim(); if (t.startsWith('|')) t = t.slice(1); if (t.endsWith('|') && !t.endsWith('\\|')) t = t.slice(0, -1); const c = []; let cur = '', code = false; for (let k = 0; k < t.length; k++) { const ch = t[k]; if (ch === '\\' && t[k + 1] === '|') { cur += '\\|'; k++; continue; } if (ch === '`') code = !code; if (ch === '|' && !code) { c.push(cur.trim()); cur = ''; continue; } cur += ch; } c.push(cur.trim()); return c; };
+        const head = split(lines[i]), al = split(lines[i + 1]).map(c => c.startsWith(':') && c.endsWith(':') ? 'c' : c.endsWith(':') ? 'r' : c.startsWith(':') ? 'l' : '');
+        const rows = [];
+        let j = i + 2;
+        while (j < lines.length && ok[j] && lines[j].trim() && lines[j].includes('|')) { rows.push(split(lines[j])); j++; }
+        const n = Math.max(head.length, ...rows.map(r => r.length));
+        const w = Array.from({ length: n }, (_, k) => Math.max(3, cellW(head[k] || ''), ...rows.map(r => cellW(r[k] || ''))));
+        const pad = (s, k) => { const d = w[k] - cellW(s); return al[k] === 'r' ? ' '.repeat(d) + s : al[k] === 'c' ? ' '.repeat(d >> 1) + s + ' '.repeat(d - (d >> 1)) : s + ' '.repeat(d); };
+        const line = r => '| ' + Array.from({ length: n }, (_, k) => pad(r[k] || '', k)).join(' | ') + ' |';
+        res.push(line(head));
+        res.push('| ' + w.map((x, k) => al[k] === 'c' ? ':' + '-'.repeat(x - 2) + ':' : al[k] === 'r' ? '-'.repeat(x - 1) + ':' : al[k] === 'l' ? ':' + '-'.repeat(x - 1) : '-'.repeat(x)).join(' | ') + ' |');
+        rows.forEach(r => res.push(line(r)));
+        count++; i = j - 1; continue;
+      }
+      res.push(lines[i]);
+    }
+    return res.join('\n');
+  });
+  if (!count) { toast('No tables found'); return; }
+  applyWhole(out, `Aligned ${count} table${count === 1 ? '' : 's'}`);
+}
+function renumberLists() {
+  const out = outsideFences((lines, ok) => {
+    const counters = new Map();
+    let prevBlank = false;
+    return lines.map((l, i) => {
+      if (!ok[i]) return l;
+      if (!l.trim()) { prevBlank = true; return l; }
+      const m = /^(\s*)(\d+)([.)])(\s+)/.exec(l);
+      const ind = /^\s*/.exec(l)[0].length;
+      for (const k of [...counters.keys()]) if (k > ind) counters.delete(k);
+      if (m) {
+        const key = m[1].length;
+        const n = counters.has(key) ? counters.get(key) + 1 : +m[2];
+        counters.set(key, n); prevBlank = false;
+        return m[1] + n + m[3] + m[4] + l.slice(m[0].length);
+      }
+      if (ind === 0 && (prevBlank || !/^[-*+] /.test(l))) counters.clear();
+      prevBlank = false;
+      return l;
+    }).join('\n');
+  });
+  applyWhole(out, 'Renumbered ordered lists');
+}
+function tidyWhitespace() {
+  let t = ta.value.replace(/\r\n?/g, '\n');
+  t = outsideFences((lines, ok) => lines.map((l, i) => ok[i] ? (/\S {2}$/.test(l) ? l : l.replace(/[ \t]+$/, '')) : l).join('\n'));
+  t = t.replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').replace(/\s*$/, '\n');
+  applyWhole(t, 'Tidied whitespace');
+}
+function shiftHeadings(dir) {
+  const r = lineRange(), whole = r.s === r.e;
+  const out = outsideFences((lines, ok) => {
+    let off = 0;
+    const firstLine = whole ? 0 : caretLine(r.ls), lastLine = whole ? lines.length - 1 : caretLine(r.le);
+    return lines.map((l, i) => {
+      if (!ok[i] || i < firstLine || i > lastLine) return l;
+      const m = /^(#{1,6})(\s)/.exec(l); if (!m) return l;
+      const n = Math.max(1, Math.min(6, m[1].length + dir));
+      return '#'.repeat(n) + l.slice(m[1].length);
+    }).join('\n');
+  });
+  applyWhole(out, `${dir > 0 ? 'Demoted' : 'Promoted'} headings${whole ? '' : ' in the selection'}`);
+}
+function insertToc() {
+  renderPreview();
+  const hs = S.headings.filter((h, i) => !(i === 0 && h.level === 1));
+  if (!hs.length) { toast('Add some headings first'); return; }
+  const min = Math.min(...hs.map(h => h.level));
+  insertBlock(hs.map(h => '  '.repeat(h.level - min) + `- [${h.text.replace(/[[\]]/g, '\\$&')}](#${h.id})`).join('\n'));
+  toast('Table of contents inserted');
+}
+
+/* ======================================================================
+   Files: open, save, export
+   ====================================================================== */
+let dlPromise = null;
+function getDownloads() { if (!inViewer()) return Promise.resolve(null); if (!dlPromise) dlPromise = window.claude.use('downloads').catch(() => null); return dlPromise; }
+async function saveFile(name, data, mime, useHandle) {
+  if (inViewer()) {
+    const dl = await getDownloads();
+    if (!dl) { toast('Downloads are not available here. Use Copy instead.', 'err'); return false; }
+    try { await dl.save({ filename: name, data }); return true; }
+    catch (e) {
+      if (e && e.code === 'declined') return false;
+      if (e && e.code === 'rate_limited') { toast('A save prompt is already open'); return false; }
+      toast(`Could not save: ${(e && (e.message || e.code)) || 'unknown error'}`, 'err'); return false;
+    }
+  }
+  if (useHandle && S.handle) {
+    try { const w = await S.handle.createWritable(); await w.write(data); await w.close(); return true; }
+    catch (e) { if (e.name === 'AbortError') return false; }
+  }
+  if (window.showSaveFilePicker && window.self === window.top) {
+    try {
+      const ext = name.split('.').pop();
+      const h = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: ext.toUpperCase(), accept: { [mime]: ['.' + ext] } }] });
+      const w = await h.createWritable(); await w.write(data); await w.close();
+      if (useHandle) { S.handle = h; S.name = h.name; }
+      return true;
+    } catch (e) { if (e.name === 'AbortError') return false; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: mime + ';charset=utf-8' }));
+  a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  return true;
+}
+const baseName = () => S.name.replace(/\.[^.]+$/, '') || 'document';
+async function save() {
+  if (!/\.(md|markdown|mdown|mkd|txt)$/i.test(S.name)) S.name = baseName() + '.md';
+  const text = ta.value;
+  if (await saveFile(S.name, text, 'text/markdown', true)) { S.saved = text; updateTitle(); autosave(); toast(`Saved ${S.name}`); }
+}
+function exportHtml() {
+  const r = MD.render(ta.value, { html: S.html, breaks: S.breaks });
+  const box = document.createElement('div'); box.append(SAN(r.html));
+  box.querySelectorAll('input.task').forEach(i => i.setAttribute('disabled', ''));
+  const title = (r.headings.find(h => h.level === 1) || r.headings[0] || { text: baseName() }).text;
+  const css = $('#md-style').textContent + '\nbody{margin:0;background:var(--md-paper);color:var(--md-text)}\n.md{padding:48px 24px 96px}\n';
+  return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${esc(title)}</title>\n<link rel="stylesheet" href="${FONT_URL}">\n<style>${css}</style>\n</head>\n<body>\n<article class="md">\n${box.innerHTML}\n</article>\n</body>\n</html>\n`;
+}
+async function downloadHtml() { if (await saveFile(baseName() + '.html', exportHtml(), 'text/html')) toast('HTML exported'); }
+async function downloadApp() {
+  if (!APP_SRC) { toast('Could not package the app in this view', 'err'); return; }
+  if (await saveFile('markdown-workbench.html', APP_SRC, 'text/html')) toast('App downloaded. Open the file in any browser.');
+}
+async function copyFormatted() {
+  const clone = pv.cloneNode(true);
+  clone.querySelectorAll('.cbtn,.anchor').forEach(n => n.remove());
+  const html = clone.innerHTML, text = clone.innerText;
+  try {
+    if (!window.ClipboardItem || !navigator.clipboard?.write) throw 0;
+    await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
+    toast('Formatted text copied');
+  } catch {
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    holder.innerHTML = html; document.body.append(holder);
+    const range = document.createRange(); range.selectNodeContents(holder);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    let ok = false; try { ok = document.execCommand('copy'); } catch {}
+    sel.removeAllRanges(); holder.remove();
+    toast(ok ? 'Formatted text copied' : 'Copy failed. Select the preview and copy it manually.', ok ? '' : 'err');
+  }
+}
+async function readFile(f) {
+  if (!f) return;
+  if (!(await confirmDiscard())) return;
+  if (f.size > 50 * 1048576) { toast('That file is over 50 MB', 'err'); return; }
+  let text = await f.text(), name = f.name;
+  if (/\.html?$/i.test(name)) { text = htmlToMd(text); name = name.replace(/\.html?$/i, '.md'); toast('Converted the HTML file to Markdown'); }
+  setText(text, name);
+}
+async function openFile() {
+  if (!(await confirmDiscard())) return;
+  if (window.showOpenFilePicker && window.self === window.top) {
+    try {
+      const [h] = await window.showOpenFilePicker({ types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown', '.mdown', '.mkd'], 'text/plain': ['.txt'], 'text/html': ['.html', '.htm'] } }] });
+      const f = await h.getFile();
+      let text = await f.text(), name = f.name;
+      if (/\.html?$/i.test(name)) { text = htmlToMd(text); name = name.replace(/\.html?$/i, '.md'); setText(text, name); toast('Converted the HTML file to Markdown'); return; }
+      setText(text, name, { handle: h });
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  S.skipConfirm = true;
+  $('#fileIn').click();
+}
+async function confirmDiscard() {
+  if (S.skipConfirm) { S.skipConfirm = false; return true; }
+  if (ta.value === S.saved || !ta.value.trim()) return true;
+  return confirmDlg('Discard unsaved changes?', `${S.name} has changes that have not been saved.`, 'Discard', true);
+}
+async function newDoc() { if (!(await confirmDiscard())) return; setText('', 'untitled.md'); ta.focus(); }
+
+/* ======================================================================
+   Menus, dialogs, toasts, clipboard
+   ====================================================================== */
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; document.removeEventListener('mousedown', menuOutside, true); } }
+function menuOutside(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
+function openMenu(items, x, y) {
+  closeMenu();
+  const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu');
+  for (const it of items) {
+    if (!it) continue;
+    if (it === '-') { m.insertAdjacentHTML('beforeend', '<div class="msep"></div>'); continue; }
+    if (it.head) { m.insertAdjacentHTML('beforeend', `<div class="mhead">${esc(it.head)}</div>`); continue; }
+    const b = document.createElement('button'); b.className = 'mi'; b.disabled = !!it.disabled; b.setAttribute('role', it.check !== undefined ? 'menuitemcheckbox' : 'menuitem');
+    if (it.check !== undefined) b.setAttribute('aria-checked', String(!!it.check));
+    b.innerHTML = `<span>${it.check !== undefined ? `<span class="chk">${it.check ? '✓' : ''}</span> ` : ''}${esc(it.label)}</span>${it.kbd ? `<kbd>${esc(it.kbd)}</kbd>` : ''}`;
+    b.onclick = () => { closeMenu(); it.run(); };
+    m.append(b);
+  }
+  document.body.append(m);
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
+  m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+  menuEl = m;
+  setTimeout(() => document.addEventListener('mousedown', menuOutside, true));
+  m.addEventListener('keydown', e => {
+    const bs = $$('.mi:not(:disabled)', m), i = bs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); bs[(i + 1) % bs.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); bs[(i - 1 + bs.length) % bs.length]?.focus(); }
+    else if (e.key === 'Escape') { closeMenu(); ta.focus(); }
+  });
+  m.querySelector('.mi:not(:disabled)')?.focus({ preventScroll: true });
+}
+function modal({ title, html, buttons = [], wide }) {
+  const ov = document.createElement('div'); ov.className = 'modal-ov';
+  ov.innerHTML = `<div class="modal${wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="mh"><h2>${esc(title)}</h2><button class="ib mclose" title="Close">${I.x}</button></div><div class="mb">${html}</div><div class="mf"></div></div>`;
+  const prev = document.activeElement;
+  let onClose = null;
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey, true); onClose && onClose(); prev?.focus?.({ preventScroll: true }); };
+  const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(); } };
+  document.addEventListener('keydown', onKey, true);
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+  ov.querySelector('.mclose').onclick = close;
+  const f = ov.querySelector('.mf');
+  for (const b of buttons) { const el = document.createElement('button'); el.className = 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''); el.textContent = b.label; el.onclick = () => b.run(close, ov); f.append(el); }
+  document.body.append(ov);
+  (ov.querySelector('input') || ov.querySelector('.mf .primary') || ov.querySelector('.mf .danger') || ov.querySelector('.mclose')).focus();
+  return { root: ov, close, set onClose(fn) { onClose = fn; } };
+}
+function form({ title, text = '', fields, ok = 'OK' }) {
+  return new Promise(res => {
+    let result = null;
+    const html = (text ? `<p>${esc(text)}</p>` : '') + `<div class="${fields.length === 2 ? 'row2' : ''}">` + fields.map(f => `<label>${esc(f.label)}<input class="fi" id="ff-${f.id}" type="${f.type || 'text'}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" spellcheck="false"></label>`).join('') + '</div>';
+    const collect = root => Object.fromEntries(fields.map(f => [f.id, root.querySelector('#ff-' + f.id).value]));
+    const m = modal({ title, html, buttons: [{ label: 'Cancel', run: c => c() }, { label: ok, primary: true, run: (c, root) => { result = collect(root); c(); } }] });
+    m.onClose = () => res(result);
+    const first = m.root.querySelector('input'); first.select();
+    m.root.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { result = collect(m.root); m.close(); } }));
+  });
+}
+function confirmDlg(title, text, ok = 'OK', danger = false) {
+  return new Promise(res => {
+    let result = false;
+    const m = modal({ title, html: `<p>${esc(text)}</p>`, buttons: [{ label: 'Cancel', run: c => c() }, { label: ok, primary: !danger, danger, run: c => { result = true; c(); } }] });
+    m.onClose = () => res(result);
+  });
+}
+function toast(msg, kind = '') {
+  const t = document.createElement('div'); t.className = 'toast ' + kind; t.textContent = msg;
+  const box = $('#toasts'); box.append(t);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => t.remove(), kind === 'err' ? 4500 : 2600);
+}
+async function copyText(text, msg = 'Copied', btn) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; }
+  catch {
+    const t = document.createElement('textarea'); t.value = text; t.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+    document.body.append(t); t.select(); try { ok = document.execCommand('copy'); } catch {} t.remove();
+  }
+  if (btn) { const o = btn.textContent; btn.textContent = ok ? 'Copied' : 'Failed'; setTimeout(() => { btn.textContent = o; }, 1200); }
+  else toast(ok ? msg : 'Copy failed', ok ? '' : 'err');
+}
+
+/* ======================================================================
+   Views, outline, theme, settings
+   ====================================================================== */
+function setView(v) {
+  S.view = v;
+  document.body.classList.remove('view-edit', 'view-split', 'view-preview');
+  document.body.classList.add('view-' + v);
+  $$('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === v));
+  savePrefs();
+  pvBlocks = null;
+  requestAnimationFrame(() => { sizeEditor(); if (v === 'split') syncFromEditor(); if (v !== 'preview') ensureCaretVisible(); markOutline(); });
+}
+function cycleView() { setView({ edit: 'split', split: 'preview', preview: 'edit' }[S.view]); }
+function setOutline(on) {
+  S.outline = on; document.body.classList.toggle('no-outline', !on); $('#bOutline').classList.toggle('on', on);
+  if (innerWidth > 900) savePrefs();
+  pvBlocks = null;
+  requestAnimationFrame(sizeEditor);
+}
+function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark'; applyTheme(next); store.set('mdwb.theme', next);
+}
+function applySizes() {
+  document.documentElement.style.setProperty('--ed-size', S.edSize + 'px');
+  document.documentElement.style.setProperty('--md-size', S.mdSize + 'px');
+  requestAnimationFrame(() => { sizeEditor(); pvBlocks = null; });
+}
+function toolsMenu() {
+  const rc = $('#bTools').getBoundingClientRect();
+  const toggle = (k, label, after) => ({ label, check: S[k], run: () => { S[k] = !S[k]; savePrefs(); after && after(); toast(`${label}: ${S[k] ? 'on' : 'off'}`); } });
+  openMenu([
+    { head: 'Clean up' },
+    { label: 'Align table columns', run: formatTables },
+    { label: 'Renumber ordered lists', run: renumberLists },
+    { label: 'Tidy whitespace', run: tidyWhitespace },
+    { label: 'Promote headings (## → #)', run: () => shiftHeadings(-1) },
+    { label: 'Demote headings (# → ##)', run: () => shiftHeadings(1) },
+    { label: 'Insert table of contents', run: insertToc },
+    '-',
+    { head: 'Export' },
+    { label: 'Save Markdown (.md)', kbd: 'Ctrl+S', run: save },
+    { label: 'Export HTML page', run: downloadHtml },
+    { label: 'Copy HTML source', run: () => { const b = document.createElement('div'); b.append(SAN(MD.render(ta.value, { html: S.html, breaks: S.breaks }).html)); copyText(b.innerHTML, 'HTML copied'); } },
+    { label: 'Copy formatted text', run: copyFormatted },
+    { label: 'Download this app (.html)', run: downloadApp },
+    '-',
+    { head: 'Settings' },
+    toggle('sync', 'Sync scrolling'),
+    toggle('html', 'Render raw HTML', renderPreview),
+    toggle('breaks', 'Line breaks become <br>', renderPreview),
+    toggle('convertPaste', 'Convert pasted web pages to Markdown'),
+    toggle('spell', 'Spell check', () => { ta.spellcheck = S.spell; }),
+    { label: 'Larger text', kbd: 'Ctrl+=', run: () => { S.edSize = Math.min(22, S.edSize + 1); S.mdSize = Math.min(24, S.mdSize + 1); applySizes(); savePrefs(); } },
+    { label: 'Smaller text', kbd: 'Ctrl+-', run: () => { S.edSize = Math.max(11, S.edSize - 1); S.mdSize = Math.max(13, S.mdSize - 1); applySizes(); savePrefs(); } },
+    '-',
+    { label: 'Load the sample document', run: async () => { if (await confirmDiscard()) { setText(sampleText(), 'harbor-lights-2.3.md'); } } },
+    { label: 'Shortcuts and syntax', kbd: 'Ctrl+/', run: showHelp }
+  ], rc.left, rc.bottom + 4);
+}
+function showHelp() {
+  const k = arr => arr.map(([a, b]) => `<tr><td>${a.split(' / ').map(x => `<kbd>${esc(x)}</kbd>`).join(' ')}</td><td>${b}</td></tr>`).join('');
+  modal({
+    title: 'Shortcuts and syntax', wide: true,
+    html: `<table class="keys">
+      <tr><td colspan="2"><h3>Formatting</h3></td></tr>
+      ${k([['Ctrl+B / Ctrl+I', 'Bold / italic (press again to remove)'], ['Ctrl+E', 'Inline code'], ['Ctrl+Shift+X', 'Strikethrough'], ['Ctrl+K', 'Link (paste a URL over selected text to link it)'], ['Ctrl+Alt+1…6 / Ctrl+Alt+0', 'Heading level / normal text'], ['Ctrl+Shift+8 / Ctrl+Shift+7 / Ctrl+Shift+9', 'Bulleted / numbered / task list'], ['Ctrl+Shift+.', 'Quote'], ['Ctrl+Shift+K', 'Code block'], ['* _ ` ~ [ (', 'With text selected, wraps the selection']])}
+      <tr><td colspan="2"><h3>Editing</h3></td></tr>
+      ${k([['Enter', 'Continues lists and quotes; on an empty item, ends the list'], ['Tab / Shift+Tab', 'Indent / outdent list items and selected lines'], ['Alt+↑ / Alt+↓', 'Move lines up / down'], ['Ctrl+Shift+D', 'Duplicate lines'], ['Ctrl+F', 'Find and replace (supports regex and whole words)'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo']])}
+      <tr><td colspan="2"><h3>App</h3></td></tr>
+      ${k([['Ctrl+S / Ctrl+O', 'Save / open'], ['Ctrl+Shift+P', 'Cycle Edit, Split, Preview'], ['Ctrl+\\', 'Toggle outline'], ['Ctrl+= / Ctrl+-', 'Text size'], ['Double-click preview', 'Jump to that line in the source']])}
+      <tr><td colspan="2"><h3>Supported Markdown</h3></td></tr>
+      <tr><td colspan="2" style="color:var(--muted);line-height:1.7">CommonMark basics plus GitHub extensions: tables with alignment, task lists <code>- [ ]</code>, strikethrough <code>~~x~~</code>, autolinks, footnotes <code>[^1]</code>, alerts <code>&gt; [!NOTE]</code>, YAML front matter, highlights <code>==x==</code>, emoji <code>:tada:</code>, reference links, and fenced code with highlighting for JS/TS, Python, shell, Go, Rust, C-family, Ruby, SQL, JSON, YAML, HTML, CSS and diff. Raw HTML is rendered after removing scripts and unsafe attributes.</td></tr>
+    </table>`,
+    buttons: [{ label: 'Close', primary: true, run: c => c() }]
+  });
+}
+const sampleText = () => $('#sample').textContent.replace(/^\n/, '');
+
+/* ======================================================================
+   Wiring
+   ====================================================================== */
+function wire() {
+  $$('[data-icon]').forEach(b => b.insertAdjacentHTML('afterbegin', I[b.dataset.icon] || ''));
+  $('#bNew').onclick = newDoc;
+  $('#bOpen').onclick = openFile;
+  $('#bSave').onclick = save;
+  $('#bUndo').onclick = () => { ta.focus(); document.execCommand('undo'); };
+  $('#bRedo').onclick = () => { ta.focus(); document.execCommand('redo'); };
+  $('#bTools').onclick = toolsMenu;
+  $('#bOutline').onclick = () => setOutline(!S.outline);
+  $('#oClose').onclick = () => setOutline(false);
+  $('#bTheme').onclick = toggleTheme;
+  $('#bHelp').onclick = showHelp;
+  $('#fname').onclick = async () => {
+    const r = await form({ title: 'Rename document', fields: [{ id: 'n', label: 'File name used when saving', value: S.name }], ok: 'Rename' });
+    if (r && r.n.trim()) { S.name = r.n.trim(); S.handle = null; updateTitle(); autosave(); }
+  };
+  $$('#viewSeg button').forEach(b => b.onclick = () => setView(b.dataset.view));
+  $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; S.skipConfirm = true; readFile(f); };
+  $('#fmtBar').addEventListener('mousedown', e => { if (e.target.closest('[data-cmd]')) e.preventDefault(); });
+  $('#fmtBar').addEventListener('click', e => { const b = e.target.closest('[data-cmd]'); if (b) runCmd(b.dataset.cmd, b); });
+  $('#olist').addEventListener('click', e => { const b = e.target.closest('[data-h]'); if (b) jumpToHeading(+b.dataset.h); });
+  $('#pvCopy').onclick = copyFormatted;
+  $('#pvExport').onclick = downloadHtml;
+
+  // editor
+  ta.addEventListener('input', onEdit);
+  ta.addEventListener('paste', onPaste);
+  ta.addEventListener('keydown', editorKeys);
+  document.addEventListener('selectionchange', () => { if (document.activeElement === ta) markCurLine(); });
+  ta.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End)/.test(e.key)) ensureCaretVisible(); });
+  edS.addEventListener('mousedown', e => { if (e.target === edS || e.target.classList.contains('edinner')) { e.preventDefault(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } });
+  let edRaf = 0, pvRaf = 0;
+  edS.addEventListener('scroll', () => { if (edRaf) return; edRaf = requestAnimationFrame(() => { edRaf = 0; syncFromEditor(); markOutline(); }); }, { passive: true });
+  pvS.addEventListener('scroll', () => { if (pvRaf) return; pvRaf = requestAnimationFrame(() => { pvRaf = 0; syncFromPreview(); if (S.view === 'preview') markOutline(); }); }, { passive: true });
+  new ResizeObserver(() => { sizeEditor(); pvBlocks = null; }).observe(edS);
+  new ResizeObserver(() => { pvBlocks = null; }).observe(pv);
+
+  // preview interactions
+  pv.addEventListener('click', e => {
+    const a = e.target.closest('a[href^="#"]');
+    if (a) {
+      e.preventDefault();
+      let id = a.getAttribute('href').slice(1); try { id = decodeURIComponent(id); } catch {}
+      const el = document.getElementById(id);
+      if (el && pv.contains(el)) { pvS.scrollTop = el.getBoundingClientRect().top - pvS.getBoundingClientRect().top + pvS.scrollTop - 12; }
+      return;
+    }
+    const cb = e.target.closest('input.task');
+    if (cb) {
+      const n = +cb.dataset.line, v = ta.value; let pos = 0;
+      for (let k = 0; k < n; k++) { const j = v.indexOf('\n', pos); if (j < 0) return; pos = j + 1; }
+      let le = v.indexOf('\n', pos); if (le < 0) le = v.length;
+      const line = v.slice(pos, le), m = /^(\s*(?:>\s*)*(?:[-*+]|\d+[.)])\s+\[)([ xX])(\])/.exec(line);
+      if (!m) return;
+      const at = pos + m[1].length, top = edS.scrollTop, ptop = pvS.scrollTop;
+      replaceRange(at, at + 1, m[2] === ' ' ? 'x' : ' ', at + 1);
+      edS.scrollTop = top; renderPreview(); pvS.scrollTop = ptop;
+    }
+  });
+  pv.addEventListener('dblclick', e => {
+    if (S.view === 'preview') return;
+    const el = e.target.closest('[data-line]'); if (!el) return;
+    getSelection()?.removeAllRanges();
+    goToLine(+el.dataset.line);
+  });
+
+  // find
+  $('#fIn').addEventListener('input', () => refreshFind(true));
+  $('#fIn').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); findStep(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
+  });
+  $('#rIn').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); if (e.ctrlKey || e.metaKey) replaceAll(); else replaceOne(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
+  });
+  $('#fNext').onclick = () => findStep(1);
+  $('#fPrev').onclick = () => findStep(-1);
+  $('#fClose').onclick = closeFind;
+  $('#rOne').onclick = replaceOne;
+  $('#rAll').onclick = replaceAll;
+  for (const [id, k] of [['#fCase', 'cs'], ['#fWord', 'word'], ['#fRe', 're']]) $(id).onclick = () => { F[k] = !F[k]; $(id).classList.toggle('on', F[k]); refreshFind(true); };
+
+  document.addEventListener('keydown', globalKeys);
+  let dragN = 0;
+  addEventListener('dragenter', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { dragN++; $('#dropOv').hidden = false; } });
+  addEventListener('dragleave', () => { dragN = Math.max(0, dragN - 1); if (!dragN) $('#dropOv').hidden = true; });
+  addEventListener('dragover', e => e.preventDefault());
+  addEventListener('drop', e => { e.preventDefault(); dragN = 0; $('#dropOv').hidden = true; const f = e.dataTransfer?.files?.[0]; if (f) readFile(f); });
+  addEventListener('resize', closeMenu);
+  addEventListener('beforeunload', e => { if (S.handle && ta.value !== S.saved) { e.preventDefault(); e.returnValue = ''; } });
+}
+function editorKeys(e) {
+  const mod = e.ctrlKey || e.metaKey, k = e.key;
+  let handled = true;
+  if (mod && !e.shiftKey && !e.altKey && k.toLowerCase() === 'b') wrap('**', '**', 'bold text');
+  else if (mod && !e.shiftKey && !e.altKey && k.toLowerCase() === 'i') wrap('*', '*', 'italic text');
+  else if (mod && !e.shiftKey && !e.altKey && k.toLowerCase() === 'e') cmdCode();
+  else if (mod && !e.shiftKey && !e.altKey && k.toLowerCase() === 'k') cmdLink(false);
+  else if (mod && e.shiftKey && k.toLowerCase() === 'x') wrap('~~', '~~', 'text');
+  else if (mod && e.shiftKey && k.toLowerCase() === 'k') cmdCodeBlock();
+  else if (mod && e.shiftKey && k.toLowerCase() === 'd') duplicateLines();
+  else if (mod && e.shiftKey && e.code === 'Digit8') togglePrefix('ul');
+  else if (mod && e.shiftKey && e.code === 'Digit7') togglePrefix('ol');
+  else if (mod && e.shiftKey && e.code === 'Digit9') togglePrefix('task');
+  else if (mod && e.shiftKey && e.code === 'Period') togglePrefix('quote');
+  else if (mod && e.altKey && /^Digit[0-6]$/.test(e.code)) setHeading(+e.code.slice(5));
+  else if (e.altKey && !mod && k === 'ArrowUp') moveLines(-1);
+  else if (e.altKey && !mod && k === 'ArrowDown') moveLines(1);
+  else if (k === 'Tab' && !mod && !e.altKey) handled = onTab(e.shiftKey);
+  else if (k === 'Enter' && !mod && !e.shiftKey && !e.altKey && !e.isComposing) handled = onEnter();
+  else if (k === 'Escape' && F.open) closeFind();
+  else if (!mod && !e.altKey && ta.selectionStart !== ta.selectionEnd && ['*', '_', '`', '~', '=', '[', '(', '"'].includes(k)) {
+    const pair = { '[': ']', '(': ')' }[k] || k;
+    const s = ta.selectionStart, en = ta.selectionEnd, sel = ta.value.slice(s, en);
+    replaceRange(s, en, k + sel + pair, s + 1, en + 1);
+  }
+  else handled = false;
+  if (handled) e.preventDefault();
+}
+function globalKeys(e) {
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if ($('.modal-ov')) return;
+  if (mod && k === 's') { e.preventDefault(); save(); }
+  else if (mod && k === 'o') { e.preventDefault(); openFile(); }
+  else if (mod && k === 'f' && !e.shiftKey) { e.preventDefault(); if (S.view === 'preview') setView('split'); openFind(); }
+  else if (mod && e.shiftKey && k === 'p') { e.preventDefault(); cycleView(); }
+  else if (mod && e.key === '\\') { e.preventDefault(); setOutline(!S.outline); }
+  else if (mod && e.key === '/') { e.preventDefault(); showHelp(); }
+  else if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); S.edSize = Math.min(22, S.edSize + 1); S.mdSize = Math.min(24, S.mdSize + 1); applySizes(); savePrefs(); }
+  else if (mod && e.key === '-') { e.preventDefault(); S.edSize = Math.max(11, S.edSize - 1); S.mdSize = Math.max(13, S.mdSize - 1); applySizes(); savePrefs(); }
+  else if (e.key === 'Escape') { closeMenu(); if (F.open && document.activeElement !== ta) closeFind(); }
+}
+
+/* ======================================================================
+   Start
+   ====================================================================== */
+function init() {
+  wire();
+  const th = store.get('mdwb.theme'); if (th) applyTheme(th);
+  try { Object.assign(S, JSON.parse(store.get('mdwb.prefs') || '{}')); } catch {}
+  if (innerWidth <= 900) S.outline = false;
+  ta.spellcheck = S.spell;
+  applySizes();
+  setView(['edit', 'split', 'preview'].includes(S.view) ? S.view : 'split');
+  setOutline(S.outline);
+  let restored = false;
+  try {
+    const sess = JSON.parse(store.get('mdwb.session') || 'null');
+    if (sess && typeof sess.text === 'string' && sess.text.trim()) { setText(sess.text, sess.name || 'untitled.md', { dirty: !sess.saved }); restored = true; }
+  } catch {}
+  if (!restored) setText(sampleText(), 'harbor-lights-2.3.md');
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { sizeEditor(); pvBlocks = null; });
+  getDownloads();
+}
+init();
+</script>
+</body>
+</html>
